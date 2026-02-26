@@ -8,11 +8,9 @@
   <meta name="description" content="Tower of God TTRPG Character Sheet Application">
   <meta name="theme-color" content="#0C0A09">
 
-  <!-- Preload fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- Styles -->
   <link rel="stylesheet" href="/src/styles/variables.css">
   <link rel="stylesheet" href="/src/styles/base.css">
   <link rel="stylesheet" href="/src/styles/forms.css">
@@ -20,23 +18,61 @@
   <link rel="stylesheet" href="/src/styles/login.css">
 </head>
 
-<body data-theme="dark-gold">
+<body data-theme="dark-red">
 
   <div class="login-page">
+    <div class="login-glow"></div>
+
     <div class="login-container">
 
-      <!-- Branding -->
+      <!-- Tower Emblem — Jahad three-eye motif -->
+      <div class="login-emblem">
+        <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" class="emblem-svg">
+          <!-- Outer frame lines -->
+          <line x1="40" y1="100" x2="140" y2="30" stroke="currentColor" stroke-width="1.2" opacity="0.3"/>
+          <line x1="360" y1="100" x2="260" y2="30" stroke="currentColor" stroke-width="1.2" opacity="0.3"/>
+          <line x1="40" y1="100" x2="140" y2="170" stroke="currentColor" stroke-width="1.2" opacity="0.3"/>
+          <line x1="360" y1="100" x2="260" y2="170" stroke="currentColor" stroke-width="1.2" opacity="0.3"/>
+          <!-- Horizontal rule -->
+          <line x1="60" y1="100" x2="340" y2="100" stroke="currentColor" stroke-width="0.8" opacity="0.15"/>
+
+          <!-- Left eye -->
+          <g transform="translate(120, 100)">
+            <ellipse rx="28" ry="16" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+            <circle r="6" fill="currentColor" opacity="0.8"/>
+            <circle r="2.5" fill="var(--bg-primary)"/>
+          </g>
+
+          <!-- Center eye — larger, dominant -->
+          <g transform="translate(200, 100)">
+            <polygon points="0,-40 50,0 0,40 -50,0" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+            <ellipse rx="34" ry="20" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+            <ellipse rx="34" ry="20" fill="currentColor" opacity="0.06"/>
+            <circle r="10" fill="currentColor" opacity="0.9"/>
+            <circle r="4" fill="var(--bg-primary)"/>
+            <circle r="15" fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
+          </g>
+
+          <!-- Right eye -->
+          <g transform="translate(280, 100)">
+            <ellipse rx="28" ry="16" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+            <circle r="6" fill="currentColor" opacity="0.8"/>
+            <circle r="2.5" fill="var(--bg-primary)"/>
+          </g>
+
+          <!-- Decorative ticks -->
+          <line x1="200" y1="52" x2="200" y2="40" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+          <line x1="200" y1="148" x2="200" y2="160" stroke="currentColor" stroke-width="1" opacity="0.4"/>
+          <line x1="142" y1="72" x2="136" y2="64" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+          <line x1="258" y1="72" x2="264" y2="64" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+          <line x1="142" y1="128" x2="136" y2="136" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+          <line x1="258" y1="128" x2="264" y2="136" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+        </svg>
+      </div>
+
+      <!-- Title -->
       <div class="login-brand">
-        <div class="tower-icon">
-          <!-- Tower/staircase icon -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <h1>Tower of God</h1>
+        <h1>TOWER OF GOD</h1>
         <span class="subtitle">Character Sheet</span>
       </div>
 
@@ -44,9 +80,7 @@
       <div class="login-card">
         <h2>Welcome, Regular</h2>
         <p class="login-description">Sign in to access your character sheet and begin climbing the Tower.</p>
-
         <button id="btn-sign-in" class="btn-google">
-          <!-- Google "G" logo -->
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -60,7 +94,6 @@
       <div class="login-footer">
         <p>A companion app for the Tower of God TTRPG campaign.</p>
       </div>
-
     </div>
   </div>
 

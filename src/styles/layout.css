@@ -82,7 +82,7 @@
   flex: 1;
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), 1fr);
-  grid-auto-rows: minmax(60px, auto);
+  grid-auto-rows: auto;
   gap: var(--grid-gap);
   padding: var(--grid-gap);
   max-width: var(--container-max);
@@ -101,9 +101,8 @@
   overflow: auto;
   transition: border-color var(--transition-fast),
               box-shadow var(--transition-fast);
-  /* Default spanning — overridden by saved layout or defaults */
-  grid-column: span 4;
-  grid-row: span 3;
+  /* Column span set per-widget in HTML; rows auto-size to content */
+  min-height: 120px;
 }
 
 .widget:hover {

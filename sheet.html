@@ -19,23 +19,20 @@
   <link rel="stylesheet" href="/src/styles/modals.css">
 </head>
 
-<body data-theme="dark-gold">
+<body data-theme="dark-red">
 
   <div class="sheet-page">
 
-    <!-- Top navigation -->
     <header class="sheet-header">
       <div class="brand">
         <span class="brand-accent">ToG</span>
         <span>Character Sheet</span>
       </div>
-
       <nav>
         <a href="/sheet.html" class="active">Sheet</a>
         <a href="/compendium.html">Compendium</a>
         <a href="/admin.html" id="nav-admin" style="display: none;">Admin</a>
       </nav>
-
       <div class="header-actions">
         <button id="btn-edit-layout" class="btn-ghost btn-sm">Edit Layout</button>
         <button id="btn-theme" class="btn-ghost btn-icon" title="Theme">
@@ -56,41 +53,43 @@
       </div>
     </header>
 
-    <!-- Dashboard grid — widgets go here -->
+    <!-- 
+      Dashboard grid: 12 columns.
+      Row 1: Identity(4) + Combat Stats(4) + Progression(4)  = 12
+      Row 2: Resources(3) + Affinities(5) + Equipment(4)     = 12
+      Row 3: Stats(6) + Skills(6)                             = 12
+      Row 4: Proficiencies(4) + Backstory(8)                  = 12
+    -->
     <main class="dashboard" id="dashboard">
 
-      <!-- Identity -->
-      <div class="widget" id="identity-widget" style="grid-column: span 3; grid-row: span 4;">
+      <!-- Row 1 -->
+      <div class="widget" id="identity-widget" style="grid-column: span 4;">
         <div class="widget-header"><h3>Identity</h3></div>
         <div id="identity-content"></div>
       </div>
 
-      <!-- Top Stats Bar (HP, Speed, Attack, Defense) -->
-      <div class="widget" id="top-stats-widget" style="grid-column: span 5; grid-row: span 4;">
+      <div class="widget" id="top-stats-widget" style="grid-column: span 4;">
         <div class="widget-header"><h3>Combat Stats</h3></div>
         <div id="top-stats-content"></div>
       </div>
 
-      <!-- Progression -->
-      <div class="widget" id="progression-widget" style="grid-column: span 4; grid-row: span 4;">
+      <div class="widget" id="progression-widget" style="grid-column: span 4;">
         <div class="widget-header"><h3>Progression</h3></div>
         <div id="progression-content"></div>
       </div>
 
-      <!-- Resources (stat points, skill points, currency) -->
-      <div class="widget" id="resources-widget" style="grid-column: span 3; grid-row: span 6;">
+      <!-- Row 2 -->
+      <div class="widget" id="resources-widget" style="grid-column: span 3;">
         <div class="widget-header"><h3>Resources</h3></div>
         <div id="resources-content"></div>
       </div>
 
-      <!-- Affinities -->
-      <div class="widget" id="affinities-widget" style="grid-column: span 5; grid-row: span 5;">
+      <div class="widget" id="affinities-widget" style="grid-column: span 5;">
         <div class="widget-header"><h3>Affinities</h3></div>
         <div id="affinities-content"></div>
       </div>
 
-      <!-- Equipment -->
-      <div class="widget" id="equipment-widget" style="grid-column: span 4; grid-row: span 5;">
+      <div class="widget" id="equipment-widget" style="grid-column: span 4;">
         <div class="widget-header">
           <h3>Equipment</h3>
           <div class="widget-actions">
@@ -100,20 +99,19 @@
         <div id="equipment-content"></div>
       </div>
 
-      <!-- Stats Table -->
-      <div class="widget" id="stats-widget" style="grid-column: span 6; grid-row: span 7;">
+      <!-- Row 3 -->
+      <div class="widget" id="stats-widget" style="grid-column: span 6;">
         <div class="widget-header"><h3>Stats</h3></div>
         <div id="stats-content"></div>
       </div>
 
-      <!-- Skills -->
-      <div class="widget" id="skills-widget" style="grid-column: span 6; grid-row: span 7;">
+      <div class="widget" id="skills-widget" style="grid-column: span 6;">
         <div class="widget-header"><h3>Skills</h3></div>
         <div id="skills-content"></div>
       </div>
 
-      <!-- Proficiencies -->
-      <div class="widget" id="proficiencies-widget" style="grid-column: span 4; grid-row: span 3;">
+      <!-- Row 4 -->
+      <div class="widget" id="proficiencies-widget" style="grid-column: span 4;">
         <div class="widget-header">
           <h3>Proficiencies</h3>
           <div class="widget-actions">
@@ -123,8 +121,7 @@
         <div id="proficiencies-content"></div>
       </div>
 
-      <!-- Backstory & Notes -->
-      <div class="widget" id="backstory-widget" style="grid-column: span 8; grid-row: span 4;">
+      <div class="widget" id="backstory-widget" style="grid-column: span 8;">
         <div class="widget-header"><h3>Backstory & Notes</h3></div>
         <div id="backstory-content"></div>
       </div>
@@ -132,7 +129,6 @@
     </main>
   </div>
 
-  <!-- Modal containers (shared across all modals) -->
   <div id="modal-root"></div>
 
   <script type="module" src="/src/pages/sheet.js"></script>

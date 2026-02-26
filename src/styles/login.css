@@ -1,6 +1,6 @@
 /* src/styles/login.css */
 /* ============================================================
-   LOGIN PAGE — Immersive Tower entry screen
+   LOGIN PAGE — Tower of God immersive entry
    ============================================================ */
 
 .login-page {
@@ -13,68 +13,69 @@
   overflow: hidden;
 }
 
-/* Subtle animated background grain */
-.login-page::before {
-  content: '';
+/* Red atmospheric glow behind emblem */
+.login-glow {
   position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 50%, var(--accent-muted) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, var(--accent-muted) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
+  opacity: 0.6;
 }
 
 .login-container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
+  max-width: 520px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
-/* --- Tower branding --- */
+
+/* --- Tower emblem (three-eye motif) --- */
+.login-emblem {
+  width: 100%;
+  max-width: 420px;
+}
+
+.emblem-svg {
+  width: 100%;
+  height: auto;
+  color: var(--text-primary);
+  filter: drop-shadow(0 0 30px var(--accent-muted));
+}
+
+
+/* --- Branding text --- */
 .login-brand {
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
-}
-
-.login-brand .tower-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-glow);
-}
-
-.login-brand .tower-icon svg {
-  width: 36px;
-  height: 36px;
-  color: var(--text-inverse);
+  gap: var(--space-2);
 }
 
 .login-brand h1 {
-  font-size: var(--text-2xl);
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
   font-weight: 700;
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-widest);
   color: var(--text-primary);
 }
 
 .login-brand .subtitle {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: var(--text-sm);
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
 }
+
 
 /* --- Card --- */
 .login-card {
@@ -100,7 +101,8 @@
   margin-bottom: var(--space-6);
 }
 
-/* Google sign-in button */
+
+/* --- Google sign-in button --- */
 .btn-google {
   width: 100%;
   padding: var(--space-3) var(--space-4);
@@ -136,7 +138,6 @@
   flex-shrink: 0;
 }
 
-/* Loading state */
 .btn-google.loading {
   pointer-events: none;
   opacity: 0.7;
@@ -156,6 +157,7 @@
   to { transform: rotate(360deg); }
 }
 
+
 /* --- Footer --- */
 .login-footer {
   text-align: center;
@@ -163,17 +165,18 @@
   font-size: var(--text-xs);
 }
 
+
 /* --- Responsive --- */
 @media (max-width: 480px) {
   .login-container {
-    gap: var(--space-6);
+    gap: var(--space-4);
   }
 
   .login-card {
     padding: var(--space-6);
   }
 
-  .login-brand h1 {
-    font-size: var(--text-xl);
+  .login-emblem {
+    max-width: 300px;
   }
 }
