@@ -1,0 +1,8 @@
+h3. *Links to each positions skills page*
+
+* [[Wave Controller Skills | Wave Controller Skills]]
+* [[Spear Bearer Skills | Spear Bearer Skills]]
+* [[Fisherman Skills | Fisherman Skills]]
+* [[Light Bearer Skills | Light Bearer Skills]]
+* [[Anima Skills |Anima Skills]]
+* [[Guide Skills | Guide Skills]]

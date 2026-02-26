@@ -1,12 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ToG — Compendium</title>
+  <meta name="theme-color" content="#0C0A09">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="stylesheet" href="/src/styles/variables.css">
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/forms.css">
+  <link rel="stylesheet" href="/src/styles/notifications.css">
+  <link rel="stylesheet" href="/src/styles/layout.css">
 </head>
-<body>
-  <h1>Compendium</h1>
+
+<body data-theme="dark-gold">
+  <div class="sheet-page">
+    <header class="sheet-header">
+      <div class="brand">
+        <span class="brand-accent">ToG</span>
+        <span>Compendium</span>
+      </div>
+      <nav>
+        <a href="/sheet.html">Sheet</a>
+        <a href="/compendium.html" class="active">Compendium</a>
+      </nav>
+      <div class="header-actions">
+        <button onclick="window.location.href='/'" class="btn-ghost btn-sm">Sign Out</button>
+      </div>
+    </header>
+
+    <main id="compendium-root"></main>
+  </div>
+
   <script type="module" src="/src/pages/compendium.js"></script>
 </body>
+
 </html>

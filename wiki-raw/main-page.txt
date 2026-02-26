@@ -1,0 +1,30 @@
+h2. Welcome to the Wiki!
+
+This is where you can find most of the information about the campaign, if you are looking for information on campaign story see the "Adventure Log.":https://tog.obsidianportal.com/adventure-log 
+
+h3. *Getting Started Links*:
+
+h5. [[Skills | How skills function]]
+<br>
+
+h5. [[Stats | General Stats Information]]
+<br>
+
+h5. [[Leveling | Leveling Information]]
+<br>
+
+h5. [[Character Creation | Character Creation Guide]]
+<br>
+
+h3. *Frequently Used Links*
+
+h5. [[Combat | Combat]]
+<br>
+
+h5. [[Position Skills | Position Specific Skills]]
+<br>
+
+h5. [[Position Stats | Position Specific Stats]]
+<br>
+
+h5. "Stats Tools":https://aerctis.github.io/hp-calculator/index.html

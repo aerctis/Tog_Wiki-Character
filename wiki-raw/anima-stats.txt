@@ -1,0 +1,45 @@
+main stats page: [[Stats | Stats]]
+
+h4. *Anima Stat Affinities*
+
+Primary: [[Authority | Authority]]
+Secondary: [[Shinsu Control | Shinsu Control]], [[Willpower | Willpower]], [[Shinsu Endurance | Shinsu Endurance]], [[Insight | Insight]]
+Tertiary: [[Strength | Strength]],  [[Technique | Technique]], [[Perception | Perception]]
+<br>
+
+h4. *Example Level 1 Anima:*
+
+<div style="text-align: center;">
+|_. Stat                                   |_. Value |
+| [[Shinsu Control | Shinsu Control]] | 10 |
+| [[Shinsu Endurance | Shinsu Endurance]] | 7 |
+| [[Strength | Strength]] | 6 |
+| [[Perception | Perception]] | 9 |
+| [[Willpower | Willpower]] | 8 |
+| [[Technique | Technique]] | 6 |
+| [[Insight | Insight]] | 10 |
+| [[Authority | Authority]] |14 |
+</div>
+Roll 4d4 and keep the best 3 for each stat.
+Aim for a base stat total of around 65-70.
+Then add bonuses from [[Races | Races]]/[[Ten Great Families | Ten Great Families]].
+<br>
+
+h4. *Anima stat Growth:*
+
+<div style="text-align: center;">
+|_. Level Range     |_. Primary |_. Secondary |_. Tertiary |_. Free Stat Points/Level |
+| 1–10              | +2        | +1          | +0.5       | +1 |
+| 11–25             | +2.5      | +1          | +0.5       | +1 |
+| 26–50             | +3        | +1          | +0.5       | +1 |
+| 51–80             | +3.5        | +1.5          | +1         | +1 |
+| 81–110            | +4        | +1.5          | +1         | +1 |
+| 111–140           | +5        | +2          | +1.5         | +2 |
+| 141–170           | +6        | +2          | +1.5         | +2 |
+| 171–200           | +6        | +2          | +2         | +2 |
+</div>
+
+</div>
+<span style="color: red; font-size: 0.75em;">_max cap of 1000 on any stat_.</span>
+
+

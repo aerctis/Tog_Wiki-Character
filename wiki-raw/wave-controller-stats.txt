@@ -1,0 +1,45 @@
+main stats page: [[Stats | Stats]]
+
+h4. *Wave Controller Stat Affinities*
+
+Primary: [[Shinsu Control | Shinsu Control]], [[Shinsu Endurance | Shinsu Endurance]]
+Secondary: [[Technique | Technique]], [[Willpower | Willpower]], [[Insight | Insight]]
+Tertiary: [[Strength | Strength]], [[Perception | Perception]], [[Authority | Authority]]
+<br>
+
+h4. *Example Level 1 Wave Controller:*
+
+<div style="text-align: center;">
+|_. Stat                                   |_. Value |
+| [[Shinsu Control | Shinsu Control]] | 12 |
+| [[Shinsu Endurance | Shinsu Endurance]] | 11 |
+| [[Strength | Strength]] | 6 |
+| [[Perception | Perception]] | 7 |
+| [[Willpower | Willpower]] | 8 |
+| [[Technique | Technique]] | 9 |
+| [[Insight | Insight]] | 8 |
+| [[Authority | Authority]] | 7 |
+</div>
+Roll 4d4 and keep the best 3 for each stat.
+Aim for a base stat total of around 65-70.
+Then add bonuses from [[Races | Races]]/[[Ten Great Families | Ten Great Families]].
+<br>
+
+h4. *Wave Controller stat Growth:*
+
+<div style="text-align: center;">
+|_. Level Range     |_. Primary |_. Secondary |_. Tertiary |_. Free Stat Points/Level |
+| 1–10              | +1        | +1          | +0.5       | +1 |
+| 11–25             | +1.5      | +1          | +0.5       | +1 |
+| 26–50             | +2        | +1          | +0.5       | +1 |
+| 51–80             | +3        | +1          | +1         | +1 |
+| 81–110            | +3        | +2          | +1         | +1 |
+| 111–140           | +4        | +2          | +2         | +2 |
+| 141–170           | +4        | +3          | +2         | +2 |
+| 171–200           | +5        | +3          | +2         | +2 |
+</div>
+
+</div>
+<span style="color: red; font-size: 0.75em;">_max cap of 1000 on any stat_.</span>
+
+

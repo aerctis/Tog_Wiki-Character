@@ -1,0 +1,41 @@
+h3. *Background*  
+
+Spear Bearers are the main ranged position and snipe their opponents from long distance. They tend to not be very powerful in melee combat, but some do swap to [[Needle | Needles]] for close combat. 
+
+h3. *Range* 
+
+Your basic spear range is the average of your [[Strength | Strength]] and [[Shinsu Control | Shinsu Control]].
+
+You may attempt to throw from further *up to double* your basic range, but you get +1 disadvantage for going over by 1 and an additional +1 disadvantage for every 25% bonus range. So from 75% to 99% bonus range you roll 5d100. 
+
+h3. *Snipe Ability*
+
+Spear Bearer's have the unique ability to snipe enemies with their spear outside of combat encounters. 
+
+Spear Bearer's can learn special 'Snipe' skills, which can be used on enemies before encounters. Snipe skills must be used from range and do not require contesting attack-defense rolls. You may also use snipe skills inside encounters if you are concealed. *Hitting an enemy with a snipe skill reveals your location*. 
+
+Because your enemy cannot roll to defend these skills can do significant damage and have a high critical hit rate.
+
+h3. *Creating a Spear Bearer*
+
+Regardless of whether you choose to also use a [[Needle | Needle]], you will still be capable  in melee to some degree. [[Strength | Strength]] is the primary attack relevant stat, although [[Shinsu Endurance | Shinsu Endurance]] contributes to range.
+
+
+Look into the different melee weapon types, as this determines how you want to build your stats and what skills you can use. Heavy weapons, especially on higher floors, are uncommon due to the high [[Shinsu | Shinsu]] concentration making them hard to maneuver. [[Shinsu Endurance | Shinsu Endurance]] will allow you to move more freely through [[Shinsu | Shinsu]].
+
+Some [[Races | Race]]/[[Ten Great Families | Family]] options significantly effect your skills and weapons options. See [[Arie Family | Arie Family]] and [[Ha Family | Ha Family]].
+
+h4.  *Fisherman Stats*
+
+Your stats will be combination of both your [[Positions | Position]] and [[Races | Race]]/[[Ten Great Families | Family]]. 
+
+You can determine the positional stats for a Spear Bearer: [[Spear Bearer Stats | Spear Bearer Stats]]. The additional stat bonuses can be found on your [[Races | Race]]/[[Ten Great Families | Family]] page.
+
+h4. *Fisherman Skills*
+
+Lastly, you'll want to choose your first skills here: [[Fisherman | Fisherman]]
+
+h4. *Equipment*
+
+Fisherman can use a variety of different weapons. Light weapons and Reels scale with [[Technique | Technique]], whereas heavy weapons with [[Shinsu Endurance | Shinsu Endurance]]. Both scale with [[Strength | Strength]]. 
+

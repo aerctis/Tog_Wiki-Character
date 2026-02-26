@@ -1,0 +1,7 @@
+h3. *Links to each position's stat page*
+* [[Wave Controller Stats | Wave Controller Stats]]
+* [[Fisherman Stats | Fisherman Stats]]
+* [[Spear Bearer Stats | Spear Bearer Stats]]
+* [[Light Bearer Stats | Light Bearer Stats]]
+* [[Anima Stats | Anima Stats]]
+* [[Guide Stats | Guide Stats]]

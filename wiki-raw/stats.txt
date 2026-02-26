@@ -1,0 +1,61 @@
+h4. *Stats* 
+
+Your traditional DnD stats are: Strength, Dexterity, Constiution, Intelligence, Wisdom, and Charisma
+
+Stats in this campaign are completely revamped, they are:
+* [[Shinsu Control | Shinsu Control]]
+* [[Shinsu Endurance | Shinsu Endurance]]
+* [[Strength | Strength]]
+* [[Perception | Perception]]
+* [[Willpower | Willpower]]
+* [[Technique | Technique]]
+* [[Insight | Insight]]
+* [[Authority | Authority]]
+
+Each position has stat affinities: Core, Secondary, and Tertiary--which affect their level growth curves. Details on affinities and level curves can be found in specific positions [[Position Stats | stats pages.]]
+
+Primarily your stats increase in two ways:
+# naturally as you level up
+# through allocating skill points
+
+<span style="color: red;">No stat may be increased beyond 1.5x your average stat with skill points.</span> "Go here to find your maximum allowed stat level":https://aerctis.github.io/hp-calculator/stat-cap.html
+<span style="color: red; font-size: 0.75em;">_*certain equipment can remove or lighten this restriction_.</span>
+
+
+h4. <div>*Movement Speed*</div>
+
+As you climb floors [[Shinsu | Shinsu]] becomes denser and harder to move through. 
+For each floor you climb your [[Shinsu Endurance | Shinsu Endurance]] must be twice as high as the floor level to receive no movement speed penalty.
+
+Otherwise your Shinsu Movement Speed Penalty will be -1 for each point of [[Shinsu Endurance | Shinsu Endurance]] you are missing. 
+
+Movement speed is (6 + level - Shinsu Pentaly) meters. 
+
+<a name="character_health"></a>
+
+h4. *Character Health*
+
+You can calculate your health here: "Health Calculator":https://aerctis.github.io/hp-calculator/
+
+Health is calculated as follows:
+3x your [[Shinsu Endurance | Shinsu Endurance]] + 2x your [[Strength | Strength]] + 1.5x your [[Willpower | Willpower]] + for each Level you've passed, your *Health Multiplier* for that level.
+
+You health multiplier for each level can be found below:
+
+<div style="text-align: center;">
+|_. Level Range     |_. Health Multiplier |
+| 1–10              | +2                   |
+| 11–25             | +3                   |
+| 26–50             | +4                   |
+| 51–80             | +5                   |
+| 81–110            | +6                   |
+| 111–140           | +7                   |
+| 141–170           | +8                   |
+| 171–200           | +9                   |
+</div>
+
+
+h4. *Attack and Defense Stats*
+
+When rolling to attack and defend (see [[Combat | Combat]]) you will use the special attack and defense stats. Your attack and defense stats are dependent on your base stats. E.g. the attack stats for a [[Fisherman | Fisherman]] may depend on [[Strength | Strength]] and [[Technique | Technique]]. The Type of weapon you are using as well as some other passive skills can also affect your attack and defense stats. 
+*Make sure to keep track of them!* 

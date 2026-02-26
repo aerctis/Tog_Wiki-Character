@@ -1,0 +1,30 @@
+h4. *Background*
+
+Wave Controllers help their allies in battles by attacking the enemy or aiding the team by manipulating the [[Shinsu | Shinsu]]. Out of all the five ordinary [[Positions | Positions]], Wave Controller is the rarest to be chosen for.
+
+Even for a rare Position, the Wave Controller Position comes with extreme individual variations. There are Wave Controllers who recklessly attack the enemy and there are those change the tide of the battle by subtly altering the flow of the [[Shinsu | Shinsu]].
+
+h4. *Creating a Wave Controller*
+
+First consider if you want to be more combat focused or support/healing oriented. Move forward with this in mind. 
+
+Next, choose if you want to have a special [[Shinsu Qualities | Shinsu Quality]]. Shinsu qualities are generally hereditary so this may limit your options for Race/Family. For example, almost all people with lightning and ice [[Shinsu Qualities | Shinsu Qualities]] belong to the [[Khun Family | Khun Family]]. 
+
+Browse through the [[Ten Great Families | Ten Great Families]] and [[Shinsu Qualities | Shinsu Qualities]] and try to find something that works. Keep in mind that the vast majority of people do not have any [[Shinsu Qualities | Shinsu Qualities]].
+
+h5.  *Wave Controller Stats*
+
+Your stats will be combination of both your [[Positions | Position]] and [[Races | Race]]/[[Ten Great Families | Family]]. 
+
+You can determine the positional stats for a wave controller here: [[Wave Controller Stats | Wave Controller Stats]]. The additional stat bonuses can be found on your [[Races | Race]]/[[Ten Great Families | Family]] page.
+
+h5. *Wave Controller Skills*
+
+Lastly, you'll want to choose your first skills here: [[Wave Controller Skills | Wave Controller Skills]]
+__Wave Controllers have the most complex skill building options__
+
+
+h5. *Equipment*
+
+Wave Controllers can use a [[Wand | Wand]] to assist them in controlling [[Shinsu | Shinsu]].
+

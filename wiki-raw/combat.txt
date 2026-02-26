@@ -1,0 +1,97 @@
+
+Combat is very different to traditional DnD although it is still roll based.
+
+h5. *Turn Order*
+
+At the start of combat each party member rolls a d4, the highest roll move first in combat. Ties are broken by highest [[Technique | Technique]].
+
+
+h5. *Contested Damage*
+
+Attack Roll:  1d100 + (attack relevant stat / 5) + weapon modifier
+Defense Roll:  1d100 + (defense relevant stat / 5) + equipment modifier
+<a href="https://tog.obsidianportal.com/wikis/stats#character_health"> _learn about attack and defense stats_</a>
+
+To hit, your attack roll must be higher than your opponents defense roll. 
+
+<div style="display: flex; align-items: flex-start; gap: 20px;">
+  <div style="flex: 1; text-align: left; line-height: 1.6;">
+
+If you hit, find the difference between the attack and defense roll. The degree by which you out roll represents a cleaner hit on your opponent and therefore results in more damage.
+<br>
+_If the difference between your attack roll and the defense roll is -100 or less. You will get stunned for a turn of combat._
+ 
+  </div>
+
+  <div>
+    <table border="1" style="border-collapse: collapse;">
+      <tr>
+        <th>Roll Difference</th>
+        <th>Damage</th>
+
+      </tr>
+      <tr>
+        <td>≥100</td>
+        <td>200% </td>
+        <th>Critical Strike</th>
+      </tr>
+      <tr>
+        <td>90-99</td>
+        <td>100%</td>
+      </tr>
+      <tr>
+        <td>80-89</td>
+        <td>90%</td>
+      </tr>
+      <tr>
+        <td>70-79</td>
+        <td>80%</td>
+      </tr>
+      <tr>
+        <td>60-69</td>
+        <td>70%</td>
+      </tr>
+      <tr>
+        <td>50-59</td>
+        <td>60%</td>
+      </tr>
+       <tr>
+        <td>40-49</td>
+        <td>50%</td>
+      </tr>
+      <tr>
+        <td>30-39</td>
+        <td>40%</td>
+      </tr>
+      <tr>
+        <td>20-29</td>
+        <td>30%</td>
+      </tr>
+      <tr>
+        <td>10-19</td>
+        <td>20%</td>
+      </tr>
+     <tr>
+        <td>1-9</td>
+        <td>10%</td>
+      </tr>
+      <tr>
+        <td>-99-0</td>
+        <td>0%</td>
+        <td>Missed/Blocked</td>
+      </tr>
+       <tr>
+        <td>≤-100</td>
+        <td>0%</td>
+        <td> *L stunned* </td>
+         </tr>
+
+    </table>
+  </div>
+</div>
+
+
+
+h5. *Damage Roll*
+
+If you successfully hit your opponent you must now roll for damage. The base damage rolls for your attack will be based on your weapon (if you have one) and the skill you are using. See their pages: [[Position Skills | Position Skills]] and [[Weapons | Weapons]]. These rolls will be added, along with other additive damage bonuses, then any multipliers will be applied. Finally multiply by the contested damage multiplier from above.  

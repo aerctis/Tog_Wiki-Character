@@ -1,0 +1,23 @@
+
+Both the leveling system and stats are work quite differently to DnD.
+
+h4. *Leveling System*
+
+The leveling system has some significant changes:
+* No fixed level cap--your level will be ~10x higher
+* Much faster leveling rate 
+* Lower power gain per level (often only base [[Stats | stat increases]])
+
+h4. *Level Up Rewards*
+
+You don't get to see exactly what rewards you get on level up, but you can look at what levels are required for certain skills on your [[Position Skills | position specifc skill page.]] 
+
+You can also see the stats increases and stat points you get per level on your [[Position Stats | position specifc stat page.]] 
+
+You will occasionally get skill slots and frequently get skill points. For more info see [[Skills | Skills]]
+
+ You will also need to <a href="https://tog.obsidianportal.com/wikis/stats#character_health">recalculate your HP upon leveling up.</a>
+
+
+
+

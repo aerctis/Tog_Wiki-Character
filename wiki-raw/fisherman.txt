@@ -1,0 +1,39 @@
+h3. *Background*
+
+Fisherman are said to be the epitome of all Positions. The Position is suited for close to medium-range combatants and the main offence of the team.
+
+A Fisherman generally possess the most destructive power in man-to-man fights. Fishermen are divided into two classes: [[Reel | Reel]] Fishermen, who use [[Reel Inventories | Reel Inventories]] to attack their enemy at medium range, or Man-to-man Fishermen, who go directly on the offensive at close range.
+
+h3. *Creating a Fisherman*
+
+Outside of maybe a [[Wave Controller | Wave Controller]], Fisherman are the most versatile positions in terms of how you can build your character. 
+
+How you want to build your stats depends on what weapons and skills you want to use. And what type of Fisherman you want to be.
+
+*Reel Fisherman*
+  * Mid-long range and close range
+  * Uses a [[Reel | Reel]] and light weapons such as [[Needle | Needles]]
+
+*Man-To-Man Fisherman*
+* Stronger close range
+* Can build heavy weapons
+
+
+Look into the different melee weapon types, as this determines how you want to build your stats and what skills you can use. Heavy weapons, especially on higher floors, are uncommon due to the high [[Shinsu | Shinsu]] concentration making them hard to maneuver. [[Shinsu Endurance | Shinsu Endurance]] will allow you to move more freely through [[Shinsu | Shinsu]].
+
+Some [[Races | Race]]/[[Ten Great Families | Family]] options significantly effect your skills and weapons options. See [[Arie Family | Arie Family]] and [[Ha Family | Ha Family]].
+
+h4.  *Fisherman Stats*
+
+Your stats will be combination of both your [[Positions | Position]] and [[Races | Race]]/[[Ten Great Families | Family]]. 
+
+You can determine the positional stats for a Fisherman: [[Fisherman Stats | Fisherman Stats]]. The additional stat bonuses can be found on your [[Races | Race]]/[[Ten Great Families | Family]] page.
+
+h4. *Fisherman Skills*
+
+Lastly, you'll want to choose your first skills here: [[Fisherman | Fisherman]]
+
+h4. *Equipment*
+
+Fisherman can use a variety of different weapons. Light weapons and Reels scale with [[Technique | Technique]], whereas heavy weapons with [[Shinsu Endurance | Shinsu Endurance]]. Both scale with [[Strength | Strength]]. 
+

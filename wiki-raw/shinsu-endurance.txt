@@ -1,0 +1,5 @@
+The ability to resist the oppressive force of [[Shinsu | Shinsu]] is called *Shinsu Endurance* this stat contributes to your HP total and can be used as a defense stat when being attacked by [[Shinsu | Shinsu]]. 
+
+As the concentration of [[Shinsu | Shinsu]] increases higher in the tower it becomes more difficult to move. Having a high Shinsu Endurance allows you to move freely even in dense [[Shinsu | Shinsu]].
+
+--movespeed bonus from shinsu endurance?--

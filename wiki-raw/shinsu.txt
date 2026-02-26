@@ -1,0 +1,26 @@
+h4. Shinsu is a substance native to lifeforms within the Tower. It is produced by the Tower and flows through the surroundings like air.
+
+h4. As you climb higher in the tower the concentration of Shinsu will increase. This means the potential output of a [[Wave Controller | Wave Controller]] increases, but its strain on the body also increases, making it harder to move. To an ordinary person, while the Shinsu on the first floor appears no different than air, on higher floors they would be unable to move at all.
+<br>
+
+h4. To manipulate Shinsu into natural elements or unique forms, a person must find [[Shinsu Qualities | Shinsu Qualities]] that suit them.
+
+h4. In order to use Shinsu without the help of any special items, a person needs to obtain a [[Contract | Contract or Permission]] from the Administrator of the Floor.
+
+<br>
+
+h3. *Baang, Myun, and Soo*
+ 
+h4. *Baang*
+
+[[Baang | Baang]] is the basic unit in which Shinsu is measured by and made up of. The more Baangs one can control, the more skilled at manipulating Shinsu one is judged to be. However, this does not mean one can manipulate greater Myun and higher Soo with many Baangs. As the number of Baangs increase, control becomes more difficult. Overdoing the handling of Baangs can physically and mentally exhaust the manipulator - in serious cases, this may lead to death.
+
+h4. *Myun*
+
+Myun refers to the size of a Baang. Specifically, it refers to the surface area that Shinsu is spread out across, regardless of height. 1 Myun is equal to around 3.306 square meters of Shinsu. When discussing the size of a Baang, the height is not considered because its range of fluctuation is large and heavily depends on the situation, which makes it difficult to discern. (Height is not involved in the calculation of the size of the Baang. The height is dealt with by converting it using the numerical value of the concentration of the Baang in question.)
+
+It can be said that the wider the Myun one can control, the wider the area in which Shinsu can be applied. Those who can control a large Myun are closest to what the traditional Wave Controllers were, who controlled the flow of the battlefield. Since they had to be able to control Shinsu throughout the whole battlefield, the Myun the Wave Controller had would have to be the size of the battlefield.
+
+h4. *Soo*
+
+Soo refers to the concentration or mass of Shinsu within a Baang. Only the concentration of Shinsu in the most concentrated area of the Baang is used to calculate Soo. There is no numerical unit used on Earth that can be related to Soo. The measurement of Soo can only be done using a [[Lighthouse | Lighthouse]], Observer or specialized senses. The higher the Soo, the more effective and destructive a Baang is. This is why controlling a high Soo is extremely important. Normally, the denser the Shinsu in the environment, the faster the Soo in a Baang can be increased. However, there is a limit to the amount of Soo that can be pressed into a Baang and this limit depends on the person. The environment has no effect in overcoming this limit whatsoever.

@@ -1,0 +1,52 @@
+main stats page: [[Stats | Stats]]
+
+h4. *Fisherman Stat Affinities*
+
+Primary: [[Technique | Technique]], [[Strength | Strength]], [[Perception | Perception]]
+Secondary: [[Shinsu Endurance | Shinsu Endurance]],  [[Insight | Insight]]
+Tertiary: [[Willpower | Willpower]], [[Shinsu Control | Shinsu Control]], [[Authority | Authority]]
+
+h6. Fisherman have the option to swap any stat affinities twice. There must be 3 primary, 2 secondary, and 3 tertiary affinities after swapping.  
+
+h6. E.g. swap perception to Secondary and Insight to Primary, then swap Insight to Tertiary and Shinsu Control to Primary. 
+<br>
+
+h5. Fisherman get +5 to movement speed. 
+
+
+h4. *Example Level 1 Fisherman stats:*
+
+<div style="text-align: center;">
+|_. Stat                                   |_. Value |
+| [[Shinsu Control | Shinsu Control]] | 6 |
+| [[Shinsu Endurance | Shinsu Endurance]] | 9 |
+| [[Strength | Strength]] | 10|
+| [[Perception | Perception]] | 9|
+| [[Willpower | Willpower]] | 8 |
+| [[Technique | Technique]] |12 |
+| [[Insight | Insight]] | 7 |
+| [[Authority | Authority]] | 8 |
+</div>
+Roll 4d4 and keep the best 3 for each stat.
+Aim for a base stat total of around 65-70.
+Then add bonuses from [[Races | Races]]/[[Ten Great Families | Ten Great Families]].
+
+h4. *Fisherman Stat Growth:*
+
+
+<div style="text-align: center;">
+|_. Level Range     |_. Primary |_. Secondary |_. Tertiary |_. Free Stat Points/Level |
+| 1–10              | +1        | +1          | +0.5       | +1 |
+| 11–25             | +1.5      | +1          | +0.5       | +1 |
+| 26–50             | +2        | +1          | +0.5       | +1 |
+| 51–80             | +2        | +2          | +1         | +1 |
+| 81–110            | +3        | +2          | +1         | +1 |
+| 111–140           | +3        | +2          | +2         | +2 |
+| 141–170           | +4        | +3          | +2         | +2 |
+| 171–200           | +4        | +3          | +3         | +2 |
+</div>
+
+</div>
+<span style="color: red; font-size: 0.75em;">_max cap of 1000 on any stat_.</span>
+
+

@@ -1,0 +1,26 @@
+Shinsu Quality is a special kind of Shinsu that possesses special attributes / properties / qualities. The people who have a Shinsu quality are considered special.
+
+h4. *About*
+
+[[Shinsu | Shinsu]] controlled by a few special people contains special qualities. The properties of shinsu are dictated entirely by how it flows, allowing it to behave as heat, light, and the innumerable other phenomena of the world. When shinsu develops a flow that causes it to behave as one of these phenomena, it is said to have a Quality. It is exceptionally rare for one to be able to cause the [[Shinsu | Shinsu]] they control to manifest Quality, but the benefits are extreme, as a shinsu quality that suits its user is easier to use, and can be concentrated into a [[Baang | Baang]] easier, with even greater density. One may have more than one Shinsu Quality. 
+
+h4. *Shinsu Attributes*
+* Fire
+* Water
+* shadow
+* Steam
+* Ice
+* Lightning
+* Wind
+
+Individuals also have a Shinsu Shape. This is the form their shinsu takes when fighting. 
+
+h4. *Shinsu Shapes*
+* Orb
+* Bubble
+* Spear
+* Shield
+* Sword
+* Arrow
+* Needle
+* Flower

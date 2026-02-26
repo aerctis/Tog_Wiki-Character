@@ -1,12 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ToG — Character Sheet</title>
+  <meta name="theme-color" content="#0C0A09">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="stylesheet" href="/src/styles/variables.css">
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/forms.css">
+  <link rel="stylesheet" href="/src/styles/notifications.css">
+  <link rel="stylesheet" href="/src/styles/layout.css">
+  <link rel="stylesheet" href="/src/styles/widgets.css">
+  <link rel="stylesheet" href="/src/styles/modals.css">
 </head>
-<body>
-  <h1>Character Sheet</h1>
+
+<body data-theme="dark-gold">
+
+  <div class="sheet-page">
+
+    <!-- Top navigation -->
+    <header class="sheet-header">
+      <div class="brand">
+        <span class="brand-accent">ToG</span>
+        <span>Character Sheet</span>
+      </div>
+
+      <nav>
+        <a href="/sheet.html" class="active">Sheet</a>
+        <a href="/compendium.html">Compendium</a>
+        <a href="/admin.html" id="nav-admin" style="display: none;">Admin</a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="btn-edit-layout" class="btn-ghost btn-sm">Edit Layout</button>
+        <button id="btn-theme" class="btn-ghost btn-icon" title="Theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        <span class="user-name" id="user-display-name"></span>
+        <button id="btn-sign-out" class="btn-ghost btn-sm">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- Dashboard grid — widgets go here -->
+    <main class="dashboard" id="dashboard">
+
+      <!-- Identity -->
+      <div class="widget" id="identity-widget" style="grid-column: span 3; grid-row: span 4;">
+        <div class="widget-header"><h3>Identity</h3></div>
+        <div id="identity-content"></div>
+      </div>
+
+      <!-- Top Stats Bar (HP, Speed, Attack, Defense) -->
+      <div class="widget" id="top-stats-widget" style="grid-column: span 5; grid-row: span 4;">
+        <div class="widget-header"><h3>Combat Stats</h3></div>
+        <div id="top-stats-content"></div>
+      </div>
+
+      <!-- Progression -->
+      <div class="widget" id="progression-widget" style="grid-column: span 4; grid-row: span 4;">
+        <div class="widget-header"><h3>Progression</h3></div>
+        <div id="progression-content"></div>
+      </div>
+
+      <!-- Resources (stat points, skill points, currency) -->
+      <div class="widget" id="resources-widget" style="grid-column: span 3; grid-row: span 6;">
+        <div class="widget-header"><h3>Resources</h3></div>
+        <div id="resources-content"></div>
+      </div>
+
+      <!-- Affinities -->
+      <div class="widget" id="affinities-widget" style="grid-column: span 5; grid-row: span 5;">
+        <div class="widget-header"><h3>Affinities</h3></div>
+        <div id="affinities-content"></div>
+      </div>
+
+      <!-- Equipment -->
+      <div class="widget" id="equipment-widget" style="grid-column: span 4; grid-row: span 5;">
+        <div class="widget-header">
+          <h3>Equipment</h3>
+          <div class="widget-actions">
+            <button id="btn-compendium" class="btn-sm btn-ghost">Compendium</button>
+          </div>
+        </div>
+        <div id="equipment-content"></div>
+      </div>
+
+      <!-- Stats Table -->
+      <div class="widget" id="stats-widget" style="grid-column: span 6; grid-row: span 7;">
+        <div class="widget-header"><h3>Stats</h3></div>
+        <div id="stats-content"></div>
+      </div>
+
+      <!-- Skills -->
+      <div class="widget" id="skills-widget" style="grid-column: span 6; grid-row: span 7;">
+        <div class="widget-header"><h3>Skills</h3></div>
+        <div id="skills-content"></div>
+      </div>
+
+      <!-- Proficiencies -->
+      <div class="widget" id="proficiencies-widget" style="grid-column: span 4; grid-row: span 3;">
+        <div class="widget-header">
+          <h3>Proficiencies</h3>
+          <div class="widget-actions">
+            <button id="btn-manage-proficiencies" class="btn-sm btn-ghost">Manage</button>
+          </div>
+        </div>
+        <div id="proficiencies-content"></div>
+      </div>
+
+      <!-- Backstory & Notes -->
+      <div class="widget" id="backstory-widget" style="grid-column: span 8; grid-row: span 4;">
+        <div class="widget-header"><h3>Backstory & Notes</h3></div>
+        <div id="backstory-content"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal containers (shared across all modals) -->
+  <div id="modal-root"></div>
+
   <script type="module" src="/src/pages/sheet.js"></script>
 </body>
+
 </html>

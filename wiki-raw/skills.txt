@@ -1,0 +1,78 @@
+h5. *Almost everything your character can do is a skill. What would normally be a spell, technique, feat,  or trait is probably a skill. 
+
+p. 
+
+h4. *Learning new skills*
+
+There are two primary ways to learn skills:
+# Spending skill points to unlock a skill you meet the requirements for
+# Through a campaign event
+
+h4. *Skill Slots*
+
+To learn a skill you must have an open skill slot. 
+Characters have a limited number of skill slots at any given point. You can get skill slots in various ways, and they will occasionally be given upon level-up.
+
+
+h4. *Skill Tiers*
+
+Skills have 5 tiers. 
+
+<div style="display: flex; align-items: flex-start; gap: 20px;">
+  <div style="flex: 1; text-align: left; line-height: 1.6;">
+<br>
+    Skills and skill slots have different tiers. To learn a skill you must have a skill slot of the same or lower tier. See the table for when you may receive a skill slot of a specific tier on level up. 
+  </div>
+
+  <div>
+    <table border="1" style="border-collapse: collapse;">
+      <tr>
+        <th>Tier</th>
+        <th>Level</th>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>1-50</td>
+        <th>Ordinary</th>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>25-100</td>
+        <th>Regular</th>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>75-150</td>
+        <th>Ranker</th>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>125-200</td>
+        <th>HR</th>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>175-250</td>
+        <th>Irregular</th>
+      </tr>
+    </table>
+  </div>
+</div>
+
+h4. *Skill Points*
+
+As you level up you will acquire skill points, which can be used to upgrade or unlock new skills. To see what skills you can learn at what level and how much they cost please see your [[Position Skills | role specific skills page]]. _Note that skills related to race/family AND position are located at the bottom of that page_. 
+
+_**Also note that any skills learned without the use of skill points will not use a skill slot._
+
+h4. *Skill Levels*
+
+Skills you learn have levels. All skills you unlock via skill points start at level one. You can upgrade a skill using skill points to increase its effectiveness. The cost of leveling a skill and the changes per level can be found on the page for that skill. See [[Position Skills | Position Skills]]
+
+h4. *Skill Proficiency*
+
+Depending on your race/family and position you may have a "strong proficiency" in a specific skill or you might have a "weak proficiency" in a category of skills e.g. sword skills. It is also possible to gain a proficiency later via other means. Weak proficiencies provide a general improvement, like more damage or range, while strong proficiencies change something more fundamental about the skill.
+
+<div>
+h5. Weak Proficiency
+Having a weak proficiency over a set of skills gives you -10% skill point cost when leveling or learning those skills. Effectiveness bonuses can be found on specific skill pages. </div>
