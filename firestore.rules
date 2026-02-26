@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users can read/write their own user doc
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // Characters: owners can read/write, admins can read/write all
+    match /characters/{charId} {
+      allow read, write: if request.auth != null && 
+        (resource.data.uid == request.auth.uid || isAdmin());
+    }
+    
+    // Libraries: anyone authenticated can read, only admins write
+    match /skills/{doc} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /items/{doc} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    match /beasts/{doc} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    
+    // Game settings: anyone can read, only admin writes
+    match /game_settings/{doc} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    
+    // Market: authenticated can read/create, admin can update
+    match /market/{doc} { 
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if isAdmin();
+    }
+    
+    // Wiki: anyone can read published, admin can write
+    match /wiki/{doc} { 
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // Session logs: anyone can read published, admin can write
+    match /session_logs/{doc} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // Beast synergies: anyone can read, admin can write
+    match /beast_synergies/{doc} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+  }
+}

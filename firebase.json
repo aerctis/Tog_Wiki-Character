@@ -1,0 +1,16 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/sheet/**", "destination": "/sheet.html" },
+      { "source": "/compendium/**", "destination": "/compendium.html" },
+      { "source": "/admin/**", "destination": "/admin.html" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}
