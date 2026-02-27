@@ -13,6 +13,8 @@ import { calculateBeastStats, getBeastAbilities, checkBeastSynergy, calculateAva
 import { initNotifications, showNotification } from '../components/shared/notification.js';
 import { openModal, closeModal, getModalBody, showConfirmation } from '../components/shared/modal.js';
 import { STATS, AUTOSAVE_DELAY, POSITIONS, EQUIPMENT_SLOTS, BASE_SPIRIT } from '../config/constants.js';
+import { openSettingsModal } from '../components/shared/settings.js';
+import { applyTheme, applyLayout, LAYOUT_PRESETS } from '../services/theme.service.js';
 
 // ─── Page State ───────────────────────────────────────────────────
 let char = null;
@@ -55,6 +57,13 @@ async function init() {
     return;
   }
 
+  document.getElementById('btn-settings')?.addEventListener('click', () => {
+    openSettingsModal(char, (updates) => {
+      Object.assign(char, updates);
+      queueSave(); // uses your existing autosave
+    });
+  });
+
   libs = libraries;
 
   // Merge loaded data with defaults
@@ -85,6 +94,14 @@ async function init() {
     char.beastPoints = rawChar.beastPoints || 0;
   } else {
     char = defaults;
+
+    if (char.appliedTheme) {
+      applyTheme(char.appliedTheme, char.appliedThemeVars || null);
+    }
+    if (char.layoutPreset) {
+      const preset = LAYOUT_PRESETS.find(l => l.id === char.layoutPreset);
+      if (preset) applyLayout(preset.grid);
+    }
     await saveCharacter(user.uid, buildSavePayload(char));
   }
 
@@ -557,8 +574,8 @@ function renderProficiencies() {
   if (!el) return;
   el.innerHTML = char.proficientCategories.length > 0
     ? `<div class="tag-list">${char.proficientCategories.map(c =>
-        `<span class="tag">${c}</span>`
-      ).join('')}</div>`
+      `<span class="tag">${c}</span>`
+    ).join('')}</div>`
     : `<p style="color: var(--text-muted); font-size: var(--text-sm);">No proficiencies learned.</p>`;
 }
 
@@ -576,16 +593,16 @@ function renderEquipment() {
   el.innerHTML = `
     <div class="equipment-grid">
       ${slotsToShow.map(([key, config]) => {
-        const item = char.equipment[key];
-        const isSelected = key === char.selectedWeaponSlot;
-        return `<div class="equipment-slot ${item ? 'has-item' : ''} ${isSelected ? 'selected-weapon' : ''}" data-equip-slot="${key}" title="${item?.name || config.label}">
+    const item = char.equipment[key];
+    const isSelected = key === char.selectedWeaponSlot;
+    return `<div class="equipment-slot ${item ? 'has-item' : ''} ${isSelected ? 'selected-weapon' : ''}" data-equip-slot="${key}" title="${item?.name || config.label}">
           ${item
-            ? `<img class="item-image" src="${item.image || ''}" alt="${item.name}">`
-            : `<div class="slot-placeholder"><div style="font-size: var(--text-xs);">${config.label}</div></div>`
-          }
+        ? `<img class="item-image" src="${item.image || ''}" alt="${item.name}">`
+        : `<div class="slot-placeholder"><div style="font-size: var(--text-xs);">${config.label}</div></div>`
+      }
           <div class="slot-action" data-equip-action="${key}">${item ? '⇄' : '+'}</div>
         </div>`;
-      }).join('')}
+  }).join('')}
     </div>
     <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
       <button class="btn-sm btn-ghost" id="btn-compendium" style="flex:1;">Compendium</button>
@@ -885,7 +902,7 @@ function openBeastSelectModal(slotKey) {
         <div class="card-subtitle">Lv. ${lvl}</div>
       </div>`;
     }).join('')
-  }</div>`;
+    }</div>`;
 
   openModal({ id: 'beast-select', title: 'Select Beast', body: bodyHtml });
 
@@ -962,7 +979,7 @@ function openShopModal() {
         </button>
       </div>`;
     }).join('')
-  }</div>`;
+    }</div>`;
 
   openModal({ id: 'shop', title: `Shop — ${char.currency || 0} Points`, body });
 
@@ -994,12 +1011,12 @@ function openSellModal() {
 
   const body = `<p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-3);">List items for sale. The GM will approve and set the price.</p>
   <div class="modal-grid">${sellable.length === 0 ? '<p style="color: var(--text-muted);">No unequipped items.</p>' :
-    sellable.map(item => `<div class="card" data-sell-item="${item.id}">
+      sellable.map(item => `<div class="card" data-sell-item="${item.id}">
       <img src="${item.image || ''}" alt="${item.name}">
       <div class="card-title">${item.name}</div>
       <button class="btn-sm btn-ghost" style="margin-top: var(--space-2); width: 100%;">List for Sale</button>
     </div>`).join('')
-  }</div>`;
+    }</div>`;
 
   openModal({ id: 'sell', title: 'Sell Items', body });
 

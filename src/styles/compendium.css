@@ -1,0 +1,782 @@
+/* compendium.css — Compendium page layout & components */
+
+/* ── Page Layout ── */
+.compendium-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - var(--header-height));
+  max-width: var(--container-max);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Sidebar ── */
+.compendium-sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: var(--space-4) 0;
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.sidebar-section {
+  margin-bottom: var(--space-2);
+}
+
+.sidebar-section-title {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-5);
+  font-weight: 600;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-left: 2px solid transparent;
+  text-decoration: none;
+}
+
+.sidebar-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.sidebar-link.active {
+  color: var(--text-bright);
+  border-left-color: var(--white-accent);
+  background: rgba(255,255,255,0.03);
+}
+
+.sidebar-link .sidebar-icon {
+  width: 16px;
+  text-align: center;
+  font-size: var(--text-sm);
+  opacity: 0.6;
+}
+
+.sidebar-link.active .sidebar-icon {
+  opacity: 1;
+}
+
+/* ── Main Content Area ── */
+.compendium-content {
+  padding: var(--space-6);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ── Section Header ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section-header h2 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-bright);
+}
+
+.section-header-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* ── Search Bar ── */
+.compendium-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.compendium-search input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  transition: border-color var(--transition-fast);
+}
+
+.compendium-search input:focus {
+  outline: none;
+  border-color: var(--border-strong);
+}
+
+.compendium-search input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── Sub-tabs (Items / Beasts / Skills within compendium sections) ── */
+.comp-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.comp-tab {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.comp-tab:hover {
+  color: var(--text-primary);
+}
+
+.comp-tab.active {
+  color: var(--text-bright);
+  border-bottom-color: var(--white-accent);
+}
+
+/* ── Card Grid ── */
+.comp-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-4);
+}
+
+.comp-card {
+  background: var(--bg-widget);
+  border: 1px solid var(--border-color);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.comp-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 12px; height: 12px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-left: 1px solid rgba(255,255,255,0.1);
+  transition: all 0.3s;
+}
+
+.comp-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.comp-card:hover::before {
+  width: 20px; height: 20px;
+  border-color: rgba(255,255,255,0.2);
+}
+
+.comp-card.undiscovered {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.comp-card.undiscovered:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-color);
+  background: var(--bg-widget);
+}
+
+.comp-card-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.comp-card-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: var(--leading-tight);
+}
+
+.comp-card-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ── Detail View (Item/Skill/Beast info panel) ── */
+.detail-panel {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-6);
+}
+
+.detail-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.detail-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: var(--space-2);
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.detail-meta-item {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.detail-meta-item strong {
+  color: var(--text-primary);
+}
+
+.detail-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+  margin-bottom: var(--space-4);
+}
+
+.detail-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.detail-stats-table th,
+.detail-stats-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-stats-table th {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  font-weight: 500;
+}
+
+.detail-stats-table tr.current-level {
+  background: rgba(255,255,255,0.04);
+}
+
+.detail-stats-table tr.current-level td {
+  color: var(--text-bright);
+  font-weight: 600;
+}
+
+/* ── Beast Stats Display ── */
+.beast-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.beast-stat-box {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  padding: var(--space-3);
+  text-align: center;
+}
+
+.beast-stat-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.beast-stat-value {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Wiki Page Rendering ── */
+.wiki-page {
+  max-width: 800px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.wiki-page h2 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-bright);
+  margin: var(--space-8) 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.wiki-page h2:first-child {
+  margin-top: 0;
+}
+
+.wiki-page h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: var(--space-6) 0 var(--space-3);
+}
+
+.wiki-page h4 {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: var(--space-5) 0 var(--space-2);
+}
+
+.wiki-page h5 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.wiki-page h6 {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.wiki-page p {
+  margin-bottom: var(--space-4);
+}
+
+.wiki-page ul, .wiki-page ol {
+  margin: var(--space-3) 0 var(--space-4) var(--space-6);
+}
+
+.wiki-page li {
+  margin-bottom: var(--space-1);
+}
+
+.wiki-page strong, .wiki-page b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.wiki-page em, .wiki-page i {
+  color: var(--text-muted);
+}
+
+.wiki-page a, .wiki-page .wiki-link {
+  color: var(--accent-text);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.wiki-page a:hover, .wiki-page .wiki-link:hover {
+  color: var(--accent-hover);
+  border-bottom-color: var(--accent-hover);
+}
+
+.wiki-page table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-4) 0;
+  font-size: var(--text-sm);
+}
+
+.wiki-page table th {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border: 1px solid var(--border-color);
+}
+
+.wiki-page table td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+}
+
+.wiki-page img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border-color);
+  margin: var(--space-3) 0;
+}
+
+.wiki-page blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: var(--space-4);
+  margin: var(--space-4) 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.wiki-page code {
+  background: var(--bg-tertiary);
+  padding: 2px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.wiki-page pre {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: var(--space-4);
+  overflow-x: auto;
+  margin: var(--space-4) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.wiki-page .warning-text {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+/* ── Wiki Page List (for browsing) ── */
+.wiki-page-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wiki-page-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-widget);
+  border: 1px solid var(--border-color);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.wiki-page-item:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.wiki-page-item-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.wiki-page-item-date {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Session Log Card ── */
+.session-log-card {
+  background: var(--bg-widget);
+  border: 1px solid var(--border-color);
+  padding: var(--space-5);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  position: relative;
+}
+
+.session-log-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 12px; height: 12px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+
+.session-log-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.session-log-number {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--accent-text);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.session-log-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: var(--space-2);
+}
+
+.session-log-date {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.session-log-summary {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-3);
+  line-height: var(--leading-normal);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.session-logs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ── Markdown Editor ── */
+.md-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.md-editor-toolbar {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  flex-wrap: wrap;
+}
+
+.md-editor-toolbar button {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: all var(--transition-fast);
+}
+
+.md-editor-toolbar button:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.md-editor-toolbar .separator {
+  width: 1px;
+  background: var(--border-color);
+  margin: 0 var(--space-2);
+}
+
+.md-editor-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.md-editor-tab {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.md-editor-tab.active {
+  color: var(--text-bright);
+  border-bottom-color: var(--white-accent);
+}
+
+.md-editor-textarea {
+  width: 100%;
+  min-height: 400px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.md-editor-textarea:focus {
+  outline: none;
+  border-color: var(--border-strong);
+}
+
+.md-editor-preview {
+  min-height: 400px;
+  padding: var(--space-4);
+  border: 1px solid var(--border-color);
+  background: var(--bg-widget);
+}
+
+.md-editor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ── Image Upload ── */
+.image-upload-area {
+  border: 2px dashed var(--border-color);
+  padding: var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.image-upload-area:hover {
+  border-color: var(--border-strong);
+  background: rgba(255,255,255,0.02);
+}
+
+/* ── Empty State ── */
+.comp-empty {
+  text-align: center;
+  padding: var(--space-12);
+  color: var(--text-muted);
+}
+
+.comp-empty-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+  opacity: 0.3;
+}
+
+.comp-empty-text {
+  font-size: var(--text-sm);
+}
+
+/* ── Draft Badge ── */
+.badge-draft {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  font-weight: 600;
+  background: var(--warning-muted);
+  color: var(--warning);
+  border: 1px solid rgba(251,191,36,0.15);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .compendium-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .compendium-sidebar {
+    position: relative;
+    top: 0;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    overflow-x: auto;
+    padding: var(--space-2);
+    gap: 0;
+  }
+
+  .sidebar-section {
+    display: flex;
+    margin: 0;
+  }
+
+  .sidebar-section-title {
+    display: none;
+  }
+
+  .sidebar-link {
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .sidebar-link.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--white-accent);
+  }
+
+  .compendium-content {
+    padding: var(--space-4);
+  }
+
+  .comp-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .detail-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-image {
+    width: 150px;
+    margin: 0 auto;
+  }
+}
