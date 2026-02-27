@@ -1,13 +1,9 @@
 // src/services/library.service.js
-// Fetches game content libraries from Firestore: skills, items, beasts.
+// Fetches game content libraries from Firestore: skills, items, beasts, synergies.
 
 import { db } from '../config/firebase.js';
 import { collection, getDocs, doc, onSnapshot } from 'firebase/firestore';
 
-/**
- * Fetch all skills from the skills collection.
- * @returns {Promise<Array>}
- */
 export async function fetchSkillLibrary() {
   try {
     const snap = await getDocs(collection(db, 'skills'));
@@ -18,10 +14,6 @@ export async function fetchSkillLibrary() {
   }
 }
 
-/**
- * Fetch all items from the items collection.
- * @returns {Promise<Array>}
- */
 export async function fetchEquipmentLibrary() {
   try {
     const snap = await getDocs(collection(db, 'items'));
@@ -32,10 +24,6 @@ export async function fetchEquipmentLibrary() {
   }
 }
 
-/**
- * Fetch all beasts from the beasts collection.
- * @returns {Promise<Array>}
- */
 export async function fetchBestiaryLibrary() {
   try {
     const snap = await getDocs(collection(db, 'beasts'));
@@ -46,27 +34,38 @@ export async function fetchBestiaryLibrary() {
   }
 }
 
-/**
- * Fetch all libraries at once.
- * @returns {Promise<{ skills: Array, items: Array, beasts: Array }>}
- */
-export async function fetchAllLibraries() {
-  const [skills, items, beasts] = await Promise.all([
-    fetchSkillLibrary(),
-    fetchEquipmentLibrary(),
-    fetchBestiaryLibrary()
-  ]);
-  return { skills, items, beasts };
+export async function fetchBeastSynergies() {
+  try {
+    const snap = await getDocs(collection(db, 'beast_synergies'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error('Failed to fetch beast synergies:', error);
+    return [];
+  }
 }
 
-/**
- * Listen to game settings (shop status, etc).
- * @param {function} callback - Called with settings data on change
- * @returns {function} Unsubscribe
- */
+export async function fetchAllLibraries() {
+  const [skills, items, beasts, synergies] = await Promise.all([
+    fetchSkillLibrary(),
+    fetchEquipmentLibrary(),
+    fetchBestiaryLibrary(),
+    fetchBeastSynergies()
+  ]);
+  return { skills, items, beasts, synergies };
+}
+
 export function listenToGameSettings(callback) {
   const ref = doc(db, 'game_settings', 'shop');
   return onSnapshot(ref, (snap) => {
     callback(snap.exists() ? snap.data() : { isShopOpen: false, shopItems: [] });
+  });
+}
+
+/**
+ * Listen to a library collection for real-time updates (admin pushes changes).
+ */
+export function listenToCollection(collectionName, callback) {
+  return onSnapshot(collection(db, collectionName), snap => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   });
 }

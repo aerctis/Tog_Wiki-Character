@@ -18,10 +18,14 @@
     <div class="login-glow"></div>
     <div class="login-container">
       <div class="login-emblem">
-        <img src="/tower-emblem.png" alt="Tower of God — 神之塔" class="emblem-image" id="emblem-image">
-        <svg id="emblem-fallback" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg" class="emblem-svg">
-          <text x="200" y="60" text-anchor="middle" fill="white" font-size="42" font-weight="700" letter-spacing="12">TOWER OF GOD</text>
-          <text x="200" y="95" text-anchor="middle" fill="#666" font-size="14" letter-spacing="8">CHARACTER SHEET</text>
+        <!-- Primary: PNG emblem image -->
+        <img src="/tower-emblem.png" alt="Tower of God" class="emblem-image" id="emblem-image"
+             onerror="this.style.display='none'; document.getElementById('emblem-fallback').style.display='block';"
+             onload="document.getElementById('emblem-fallback').style.display='none';">
+        <!-- Fallback: SVG text if image missing -->
+        <svg id="emblem-fallback" viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" class="emblem-svg">
+          <text x="300" y="55" text-anchor="middle" fill="white" font-size="40" font-weight="700" letter-spacing="10" font-family="Inter, system-ui, sans-serif">TOWER OF GOD</text>
+          <text x="300" y="90" text-anchor="middle" fill="#555" font-size="13" letter-spacing="6" font-family="Inter, system-ui, sans-serif">CHARACTER SHEET</text>
         </svg>
       </div>
       <div class="login-subtitle">Character Sheet</div>
@@ -32,12 +36,6 @@
       <div class="login-footer"><p>A companion app for the Tower of God TTRPG campaign.</p></div>
     </div>
   </div>
-  <script>
-    const img = document.getElementById('emblem-image');
-    const fallback = document.getElementById('emblem-fallback');
-    img.addEventListener('error', function() { this.style.display = 'none'; fallback.style.display = 'block'; });
-    img.addEventListener('load', function() { fallback.style.display = 'none'; });
-  </script>
   <script type="module" src="/src/pages/login.js"></script>
 </body>
 </html>

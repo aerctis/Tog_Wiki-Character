@@ -69,13 +69,20 @@ export function getCurrentUser() {
   return auth.currentUser;
 }
 
+// Hardcoded admin UID from original app (fallback)
+const ADMIN_UID = "5pNCkPPJblRfKPvTofqa4kwENJQ2";
+
 /**
  * Check if the current user is an admin.
+ * Checks both Firestore users doc AND hardcoded UID.
  * @returns {Promise<boolean>}
  */
 export async function isCurrentUserAdmin() {
   const user = auth.currentUser;
   if (!user) return false;
+
+  // Hardcoded admin check (from original app)
+  if (user.uid === ADMIN_UID) return true;
 
   try {
     const userRef = doc(db, 'users', user.uid);

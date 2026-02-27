@@ -327,6 +327,7 @@ function lockStats() {
 
   showConfirmation(`Lock ${totalUnlocked} stat point(s)? This is permanent (ask GM for deallocation to undo).`).then(yes => {
     if (!yes) return;
+    if (!char.lockedStatPoints) char.lockedStatPoints = {};
     for (const stat of STATS) {
       char.lockedStatPoints[stat] = char.manualStatPoints[stat] || 0;
     }
@@ -440,7 +441,7 @@ function renderStatsTable() {
   el.querySelectorAll('[data-stat-remove]').forEach(btn => {
     btn.addEventListener('click', () => {
       const stat = btn.dataset.statRemove;
-      const locked = char.lockedStatPoints[stat] || 0;
+      const locked = (char.lockedStatPoints || {})[stat] || 0;
       if ((char.manualStatPoints[stat] || 0) > locked) {
         char.manualStatPoints[stat]--;
         onChange();
@@ -451,7 +452,8 @@ function renderStatsTable() {
   el.querySelectorAll('[data-stat-dealloc]').forEach(btn => {
     btn.addEventListener('click', () => {
       const stat = btn.dataset.statDealloc;
-      if ((char.deallocationPoints || 0) > 0 && (char.lockedStatPoints[stat] || 0) > 0) {
+      if ((char.deallocationPoints || 0) > 0 && ((char.lockedStatPoints || {})[stat] || 0) > 0) {
+        if (!char.lockedStatPoints) char.lockedStatPoints = {};
         char.lockedStatPoints[stat]--;
         char.manualStatPoints[stat]--;
         char.deallocationPoints--;
