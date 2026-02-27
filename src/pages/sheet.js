@@ -412,11 +412,11 @@ function renderStatsTable() {
       <td>${stat}</td>
       <td class="stat-value-cell ${isCapped ? 'stat-capped' : ''}">
         ${total.toFixed(1)}
-        <div class="stat-breakdown">Base ${(base - manual).toFixed(1)} + Alloc ${manual} (${lockedVal}🔒) + Skill ${skillAdd.toFixed(1)}</div>
+        <div class="stat-breakdown">Base ${(base - manual).toFixed(1)} + Alloc ${manual} + Skill ${skillAdd.toFixed(1)}</div>
       </td>
       <td>
         <div class="stat-controls">
-          ${canDeallocate ? `<button class="btn-sm btn-ghost" data-stat-dealloc="${stat}" title="Deallocate 1 locked point">🔓</button>` : ''}
+          ${canDeallocate ? `<button class="btn-sm btn-ghost" data-stat-dealloc="${stat}" title="Deallocate 1 locked point" style="font-size:9px;">↩</button>` : ''}
           <button class="btn-sm" data-stat-remove="${stat}" ${!canRemove ? 'disabled' : ''}>−</button>
           <button class="btn-sm" data-stat-add="${stat}" ${!canAdd ? 'disabled' : ''}>+</button>
         </div>

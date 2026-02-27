@@ -4,7 +4,7 @@
 import { waitForAuth, signOut, isCurrentUserAdmin } from '../../services/auth.service.js';
 import { fetchAllLibraries, listenToCollection } from '../../services/library.service.js';
 import { initNotifications, showNotification } from '../../components/shared/notification.js';
-import { openModal, closeModal, showConfirmation, getModalBody } from '../../components/shared/modal.js';
+import { openModal, closeModal, showConfirmation, getModalBody, showInputModal } from '../../components/shared/modal.js';
 import { STATS, POSITIONS, BEAST_TIERS, EQUIPMENT_SLOTS } from '../../config/constants.js';
 import {
   getPartyMembers, setPartyMembers, fetchPartyCharacters, fetchAllUsers,
@@ -95,7 +95,7 @@ function renderTabs() {
     <div id="admin-content"></div>
   `;
   root.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       root.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeTab = btn.dataset.tab;
@@ -145,7 +145,7 @@ function renderPlayersTab() {
         <div class="apc-actions">
           <button class="btn-sm" data-a="level" data-u="${pc.uid}" title="Set Level">Lvl</button>
           <button class="btn-sm" data-a="floor" data-u="${pc.uid}" title="Set Floor">Flr</button>
-          <button class="btn-sm" data-a="currency" data-u="${pc.uid}" title="Adjust Currency">💰</button>
+          <button class="btn-sm" data-a="currency" data-u="${pc.uid}" title="Adjust Currency">Pts</button>
           <button class="btn-sm" data-a="points" data-u="${pc.uid}" title="Grant Points">Pts</button>
           <button class="btn-sm" data-a="items" data-u="${pc.uid}" title="Give/Remove Items">Items</button>
           <button class="btn-sm" data-a="beasts" data-u="${pc.uid}" title="Manage Beasts">Beasts</button>
@@ -173,7 +173,7 @@ function renderPlayersTab() {
   });
 
   el.querySelectorAll('[data-a]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const uid = btn.dataset.u;
       const pc = partyChars.find(c => c.uid === uid);
       if (!pc) return;
@@ -198,7 +198,7 @@ function renderPlayersTab() {
 
 // ─── Quick prompts ────────────────────────────────────────────────
 async function promptNumber(label, current, fn) {
-  const val = prompt(`${label} (current: ${current}):`);
+  const val = await showInputModal({ title: label, label, currentValue: current, type: 'number', submitLabel: 'Set' });
   if (val === null) return;
   const num = parseInt(val);
   if (isNaN(num) || num < 1) { showNotification('Invalid number', 'danger'); return; }
@@ -207,7 +207,7 @@ async function promptNumber(label, current, fn) {
 }
 
 async function promptFloat(label, current, fn) {
-  const val = prompt(`${label} (current: ${current}):`);
+  const val = await showInputModal({ title: label, label, currentValue: current, type: 'number', submitLabel: 'Set' });
   if (val === null) return;
   const num = parseFloat(val);
   if (isNaN(num)) { showNotification('Invalid number', 'danger'); return; }
@@ -216,7 +216,7 @@ async function promptFloat(label, current, fn) {
 }
 
 async function promptAdjust(label, fn) {
-  const val = prompt(`${label}:`);
+  const val = await showInputModal({ title: 'Adjust', label: label + ' (use negative to subtract)', type: 'number', defaultValue: '0', submitLabel: 'Apply' });
   if (val === null) return;
   const num = parseInt(val);
   if (isNaN(num) || num === 0) { showNotification('Invalid amount', 'danger'); return; }
@@ -660,7 +660,7 @@ function renderContentTab() {
       <div class="modal-grid" id="content-grid"></div>
     `;
     el.querySelectorAll('[data-ct]').forEach(btn => {
-      btn.addEventListener('click', () => { contentType = btn.dataset.ct; render(); });
+      btn.addEventListener('click', async () => { contentType = btn.dataset.ct; render(); });
     });
     document.getElementById('btn-create-new')?.addEventListener('click', () => openContentEditor(contentType, null));
 
@@ -890,12 +890,12 @@ function renderShopTab() {
   });
 
   el.querySelectorAll('[data-edit-shop]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const idx = parseInt(btn.dataset.editShop);
       const si = shopItems[idx];
-      const price = prompt(`Price for ${libs.items.find(i => i.id === si.id)?.name || si.id}:`, si.price);
+      const price = await showInputModal({ title: 'Edit Price', label: 'Price', currentValue: si.price, type: 'number' });
       if (price === null) return;
-      const stock = prompt('Stock (leave blank for unlimited):', si.stock ?? '');
+      const stock = await showInputModal({ title: 'Stock', label: 'Stock (blank = unlimited)', defaultValue: si.stock ?? '', type: 'number' });
       si.price = parseInt(price) || si.price;
       si.stock = stock === '' ? undefined : parseInt(stock);
       setShopItems(shopItems).then(() => { shopSettings.shopItems = shopItems; renderShopTab(); });
@@ -914,9 +914,9 @@ function renderShopTab() {
     grid.querySelectorAll('[data-add-shop]').forEach(card => {
       card.addEventListener('click', async () => {
         const item = libs.items.find(i => i.id === card.dataset.addShop);
-        const price = prompt(`Price for ${item.name}:`, item.price || 10);
+        const price = await showInputModal({ title: 'Set Price', label: `Price for ${item.name}`, defaultValue: item.price || 10, type: 'number' });
         if (price === null) return;
-        const stock = prompt('Stock (leave blank for unlimited):');
+        const stock = await showInputModal({ title: 'Stock Limit', label: 'Stock (blank = unlimited)', type: 'number' });
         const entry = { id: item.id, price: parseInt(price) || 10 };
         if (stock !== null && stock !== '') entry.stock = parseInt(stock);
         shopItems.push(entry);
@@ -956,7 +956,7 @@ async function renderMarketTab() {
 
   el.querySelectorAll('[data-approve-listing]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const price = prompt('Sale price to pay seller:');
+      const price = await showInputModal({ title: 'Approve Sale', label: 'Price to pay seller', type: 'number', submitLabel: 'Approve' });
       if (price === null) return;
       const p = parseInt(price);
       if (isNaN(p) || p < 0) { showNotification('Invalid price', 'danger'); return; }

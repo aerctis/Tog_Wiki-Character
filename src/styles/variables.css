@@ -1,194 +1,78 @@
-/* src/styles/variables.css */
-/* ============================================================
-   DESIGN TOKENS — Tower of God Character Sheet
-   
-   Theme: "Tower Dark" — deep obsidian backgrounds with warm
-   gold accents. Inspired by the Tower's dark interior lit by
-   shinsu glow. Dense, functional, immersive.
-   ============================================================ */
+/* variables.css — Tower of God Design Tokens — Immersive Dark */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* --- Typography --- */
-  --font-body: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Geist Mono', 'Fira Code', 'Consolas', monospace;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.8125rem;  /* 13px */
-  --text-base: 0.875rem; /* 14px — slightly smaller base for data-dense UI */
-  --text-md: 1rem;       /* 16px */
-  --text-lg: 1.125rem;   /* 18px */
-  --text-xl: 1.5rem;     /* 24px */
-  --text-2xl: 2rem;      /* 32px */
+  --text-xs: 0.7rem; --text-sm: 0.8rem; --text-base: 0.875rem;
+  --text-md: 1rem; --text-lg: 1.125rem; --text-xl: 1.5rem;
+  --text-2xl: 2rem; --text-3xl: 2.5rem;
+  --leading-tight: 1.2; --leading-normal: 1.5;
+  --tracking-tight: -0.02em; --tracking-normal: 0;
+  --tracking-wide: 0.04em; --tracking-widest: 0.12em;
 
-  --leading-tight: 1.3;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.7;
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
+  --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
+  --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
 
-  --tracking-tight: -0.01em;
-  --tracking-normal: 0;
-  --tracking-wide: 0.05em;
-  --tracking-widest: 0.1em;
+  --radius-sm: 0; --radius-md: 0; --radius-lg: 0;
+  --radius-xl: 0; --radius-full: 0;
 
-  /* --- Spacing --- */
-  --space-1: 0.25rem;  /* 4px */
-  --space-2: 0.5rem;   /* 8px */
-  --space-3: 0.75rem;  /* 12px */
-  --space-4: 1rem;     /* 16px */
-  --space-5: 1.25rem;  /* 20px */
-  --space-6: 1.5rem;   /* 24px */
-  --space-8: 2rem;     /* 32px */
-  --space-10: 2.5rem;  /* 40px */
-  --space-12: 3rem;    /* 48px */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 15px rgba(255,255,255,0.05);
+  --shadow-red: 0 0 20px rgba(180,40,40,0.12);
 
-  /* --- Border Radius --- */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-full: 9999px;
+  --transition-fast: 120ms ease; --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* --- Shadows --- */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--accent-muted);
+  --z-base: 1; --z-dropdown: 100; --z-sticky: 200;
+  --z-modal-backdrop: 900; --z-modal: 1000; --z-toast: 1100;
 
-  /* --- Transitions --- */
-  --transition-fast: 120ms ease;
-  --transition-base: 200ms ease;
-  --transition-slow: 350ms ease;
-
-  /* --- Z-Index Scale --- */
-  --z-base: 1;
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-modal-backdrop: 900;
-  --z-modal: 1000;
-  --z-toast: 1100;
-
-  /* --- Layout --- */
-  --sidebar-width: 260px;
-  --header-height: 56px;
+  --header-height: 48px;
   --grid-columns: 12;
-  --grid-gap: 1rem;
+  --grid-gap: 10px;
   --container-max: 1800px;
 }
 
+body, body[data-theme="dark-red"] {
+  --bg-primary: #09090b;
+  --bg-secondary: #0f0f12;
+  --bg-tertiary: #16161a;
+  --bg-elevated: #1c1c22;
+  --bg-hover: #222228;
+  --bg-input: #0c0c0f;
+  --bg-widget: #0d0d10;
 
-/* ============================================================
-   THEME: Dark Gold (Default)
-   The signature Tower look — obsidian and amber.
-   ============================================================ */
-body,
-body[data-theme="dark-red"] {
-  --bg-primary: #0C0A09;
-  --bg-secondary: #1C1917;
-  --bg-tertiary: #292524;
-  --bg-elevated: #33302E;
-  --bg-hover: #3D3835;
+  --border-color: #1e1e24;
+  --border-subtle: #151518;
+  --border-strong: #2a2a32;
+  --border-glow: rgba(255,255,255,0.06);
 
-  --border-color: #44403C;
-  --border-subtle: #292524;
-  --border-strong: #57534E;
+  --text-primary: #d4d4d8;
+  --text-secondary: #8888a0;
+  --text-muted: #52525b;
+  --text-bright: #f0f0f4;
+  --text-inverse: #09090b;
 
-  --text-primary: #F5F5F4;
-  --text-secondary: #A8A29E;
-  --text-muted: #78716C;
-  --text-inverse: #F5F5F4;
+  --accent: #c23030;
+  --accent-hover: #e04040;
+  --accent-muted: rgba(194,48,48,0.08);
+  --accent-strong: #a02020;
+  --accent-text: #d44040;
 
-  --accent: #DC2626;
-  --accent-hover: #EF4444;
-  --accent-muted: rgba(220, 38, 38, 0.15);
-  --accent-strong: #B91C1C;
+  --white-accent: rgba(255,255,255,0.85);
+  --glow-color: rgba(255,255,255,0.04);
+  --glow-red: rgba(194,48,48,0.15);
 
-  --highlight: var(--accent);
-  --highlight-text: var(--text-primary);
-
-  --danger: #F97316;
-  --danger-muted: rgba(249, 115, 22, 0.15);
-  --success: #22C55E;
-  --success-muted: rgba(34, 197, 94, 0.15);
-  --warning: #F59E0B;
-  --info: #3B82F6;
-
-  --background-image: none;
-}
-
-
-/* ============================================================
-   THEME: Navy Blue
-   Cool-toned — midnight sea with ice-blue highlights.
-   ============================================================ */
-body[data-theme="navy-gold"] {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary: #21262d;
-  --bg-elevated: #282e36;
-  --bg-hover: #30363d;
-
-  --border-color: #30363d;
-  --border-subtle: #21262d;
-  --border-strong: #484f58;
-
-  --text-primary: #c9d1d9;
-  --text-secondary: #8b949e;
-  --text-muted: #6e7681;
-  --text-inverse: #0d1117;
-
-  --accent: #f1e05a;
-  --accent-hover: #f2e680;
-  --accent-muted: rgba(241, 224, 90, 0.1);
-  --accent-strong: #d4c444;
-
-  --highlight: #58a6ff;
-  --highlight-text: #0d1117;
-
-  --danger: #f85149;
-  --danger-muted: rgba(248, 81, 73, 0.15);
-  --success: #2ea043;
-  --success-muted: rgba(46, 160, 67, 0.15);
-  --warning: #d29922;
-  --info: #58a6ff;
-
-  --background-image: none;
-}
-
-
-/* ============================================================
-   THEME: Ashen Ember
-   Charcoal and crimson — smoldering intensity.
-   ============================================================ */
-body[data-theme="ashen-ember"] {
-  --bg-primary: #121212;
-  --bg-secondary: #1E1E1E;
-  --bg-tertiary: #282828;
-  --bg-elevated: #333333;
-  --bg-hover: #3D3D3D;
-
-  --border-color: #3A3A3A;
-  --border-subtle: #282828;
-  --border-strong: #4A4A4A;
-
-  --text-primary: #EAEAEA;
-  --text-secondary: #A0A0A0;
-  --text-muted: #707070;
-  --text-inverse: #121212;
-
-  --accent: #FFA500;
-  --accent-hover: #FFB733;
-  --accent-muted: rgba(255, 165, 0, 0.12);
-  --accent-strong: #E09000;
-
-  --highlight: #F44336;
-  --highlight-text: #EAEAEA;
-
-  --danger: #D32F2F;
-  --danger-muted: rgba(211, 47, 47, 0.15);
-  --success: #388E3C;
-  --success-muted: rgba(56, 142, 60, 0.15);
-  --warning: #FFA500;
-  --info: #42A5F5;
-
-  --background-image: none;
+  --highlight: #d44040;
+  --highlight-text: #f0f0f4;
+  --danger: #ef4444; --danger-muted: rgba(239,68,68,0.08);
+  --success: #34d399; --success-muted: rgba(52,211,153,0.08);
+  --warning: #fbbf24; --warning-muted: rgba(251,191,36,0.06);
+  --info: #60a5fa;
 }

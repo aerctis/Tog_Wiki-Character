@@ -1,201 +1,104 @@
-/* src/styles/layout.css */
-/* ============================================================
-   LAYOUT — CSS Grid dashboard for character sheet widgets
-   ============================================================ */
+/* layout.css — Header, grid, widgets with animated borders */
+.sheet-page { min-height: 100vh; display: flex; flex-direction: column; }
 
-/* --- Page shell --- */
-.sheet-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* --- Top navigation bar --- */
 .sheet-header {
-  height: var(--header-height);
-  background-color: var(--bg-secondary);
+  height: var(--header-height); background: rgba(15,15,18,0.9);
   border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  padding: 0 var(--space-5);
-  gap: var(--space-4);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
+  display: flex; align-items: center; padding: 0 var(--space-5); gap: var(--space-4);
+  position: sticky; top: 0; z-index: var(--z-sticky);
+  backdrop-filter: blur(16px);
 }
+.brand { display: flex; align-items: baseline; gap: var(--space-2); font-weight: 700; font-size: var(--text-md); letter-spacing: var(--tracking-widest); color: var(--text-bright); text-transform: uppercase; }
+.brand-accent { color: var(--accent-text); }
+.sheet-header nav { display: flex; gap: 0; margin-left: var(--space-6); }
+.sheet-header nav a { padding: var(--space-2) var(--space-4); font-size: var(--text-xs); font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-widest); border-bottom: 2px solid transparent; transition: all var(--transition-fast); }
+.sheet-header nav a:hover { color: var(--text-primary); }
+.sheet-header nav a.active { color: var(--white-accent); border-bottom-color: var(--white-accent); }
+.header-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
+.user-name { font-size: var(--text-xs); color: var(--text-muted); }
 
-.sheet-header .brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: var(--text-md);
-  white-space: nowrap;
-}
-
-.sheet-header .brand .brand-accent {
-  color: var(--accent);
-}
-
-.sheet-header nav {
-  display: flex;
-  gap: var(--space-1);
-  margin-left: var(--space-6);
-}
-
-.sheet-header nav a {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-  transition: color var(--transition-fast),
-              background-color var(--transition-fast);
-}
-
-.sheet-header nav a:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-tertiary);
-}
-
-.sheet-header nav a.active {
-  color: var(--accent);
-  background-color: var(--accent-muted);
-}
-
-.sheet-header .header-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.sheet-header .user-name {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-}
-
-
-/* --- Dashboard grid --- */
+/* ── Dashboard Grid ── */
 .dashboard {
-  flex: 1;
-  display: grid;
+  flex: 1; display: grid;
   grid-template-columns: repeat(var(--grid-columns), 1fr);
-  grid-auto-rows: auto;
-  gap: var(--grid-gap);
-  padding: var(--grid-gap);
-  max-width: var(--container-max);
-  margin: 0 auto;
-  width: 100%;
-  align-content: start;
+  grid-auto-rows: auto; gap: var(--grid-gap);
+  padding: var(--grid-gap); max-width: var(--container-max);
+  margin: 0 auto; width: 100%; align-content: start;
 }
 
-/* --- Widget base --- */
+/* ── Widget — the core box ── */
 .widget {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
-  overflow: auto;
-  transition: border-color var(--transition-fast),
-              box-shadow var(--transition-fast);
-  /* Column span set per-widget in HTML; rows auto-size to content */
-  min-height: 120px;
+  background: var(--bg-widget); border: 1px solid var(--border-color);
+  padding: var(--space-5); position: relative; overflow: visible;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeInUp 0.5s ease backwards;
 }
 
-.widget:hover {
-  border-color: var(--border-strong);
-}
+/* Staggered entrance */
+.widget:nth-child(1) { animation-delay: 0.03s; }
+.widget:nth-child(2) { animation-delay: 0.06s; }
+.widget:nth-child(3) { animation-delay: 0.09s; }
+.widget:nth-child(4) { animation-delay: 0.12s; }
+.widget:nth-child(5) { animation-delay: 0.15s; }
+.widget:nth-child(6) { animation-delay: 0.18s; }
+.widget:nth-child(7) { animation-delay: 0.21s; }
+.widget:nth-child(8) { animation-delay: 0.24s; }
 
+/* ── Animated corner ornaments ── */
+.widget::before, .widget::after {
+  content: ''; position: absolute; pointer-events: none;
+  transition: all 0.4s ease;
+}
+/* Top-left corner */
+.widget::before {
+  top: -1px; left: -1px;
+  width: 16px; height: 16px;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  border-left: 1px solid rgba(255,255,255,0.15);
+}
+/* Bottom-right corner */
+.widget::after {
+  bottom: -1px; right: -1px;
+  width: 16px; height: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.widget:hover::before {
+  width: 28px; height: 28px;
+  border-color: rgba(255,255,255,0.3);
+}
+.widget:hover::after {
+  width: 28px; height: 28px;
+  border-color: rgba(255,255,255,0.15);
+}
+.widget:hover { border-color: rgba(255,255,255,0.08); box-shadow: 0 0 30px rgba(0,0,0,0.3), 0 0 8px rgba(255,255,255,0.02); }
+
+/* ── Widget header ── */
 .widget-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-3);
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-4); padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
 }
-
 .widget-header h3 {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-widest);
-  color: var(--accent);
-  margin: 0;
+  font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: var(--tracking-widest); color: var(--text-muted); font-weight: 600;
 }
+.widget-actions { display: flex; gap: var(--space-1); }
 
-.widget-header .widget-actions {
-  display: flex;
-  gap: var(--space-2);
+/* ── Primary widgets get a subtle top glow line ── */
+.widget--primary { border-top: 1px solid rgba(255,255,255,0.08); }
+.widget--primary::before { border-color: rgba(255,255,255,0.25); }
+
+/* ── Collapsible secondary section ── */
+.widget--secondary { opacity: 0.85; }
+.widget--secondary:hover { opacity: 1; }
+
+@media (max-width: 1200px) {
+  .dashboard { grid-template-columns: repeat(6, 1fr); }
+  .widget { grid-column: span 6 !important; }
 }
-
-
-/* --- Edit mode --- */
-.dashboard.edit-mode .widget {
-  cursor: move;
-  border: 2px dashed var(--accent);
-  position: relative;
-}
-
-.dashboard.edit-mode .widget::after {
-  content: '⠿';
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  font-size: var(--text-lg);
-  color: var(--accent);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.dashboard.edit-mode .widget > *:not(.widget-header) {
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-
-/* --- Responsive breakpoints --- */
-@media (max-width: 1400px) {
-  :root {
-    --grid-columns: 8;
-  }
-}
-
-@media (max-width: 1024px) {
-  :root {
-    --grid-columns: 6;
-  }
-}
-
 @media (max-width: 768px) {
-  :root {
-    --grid-columns: 4;
-  }
-
-  .sheet-header nav {
-    display: none; /* Use hamburger menu on mobile — future */
-  }
-
-  .dashboard {
-    padding: var(--space-2);
-    gap: var(--space-2);
-  }
-
-  .widget {
-    grid-column: 1 / -1 !important;
-    grid-row: auto !important;
-  }
-}
-
-@media (max-width: 480px) {
-  :root {
-    --grid-columns: 4;
-  }
-
-  .sheet-header {
-    padding: 0 var(--space-3);
-  }
+  .dashboard { grid-template-columns: 1fr; padding: var(--space-3); gap: var(--space-3); }
+  .widget { grid-column: span 1 !important; }
+  .sheet-header { flex-wrap: wrap; height: auto; padding: var(--space-2) var(--space-3); }
 }
