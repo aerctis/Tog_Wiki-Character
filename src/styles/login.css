@@ -1,7 +1,5 @@
 /* src/styles/login.css */
-/* ============================================================
-   LOGIN PAGE — Tower of God immersive entry
-   ============================================================ */
+/* Sharp, clean Tower of God login */
 
 .login-page {
   display: flex;
@@ -13,170 +11,124 @@
   overflow: hidden;
 }
 
-/* Red atmospheric glow behind emblem */
 .login-glow {
   position: fixed;
-  top: 30%;
+  top: 35%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 600px;
-  height: 400px;
-  background: radial-gradient(ellipse, var(--accent-muted) 0%, transparent 70%);
+  width: 500px;
+  height: 350px;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.03) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
-  opacity: 0.6;
 }
 
 .login-container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-6);
 }
 
-
-/* --- Tower emblem (three-eye motif) --- */
 .login-emblem {
   width: 100%;
-  max-width: 420px;
+  max-width: 600px;
+  display: flex;
+  justify-content: center;
+}
+
+.emblem-image {
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 0 40px rgba(255,255,255,0.05));
 }
 
 .emblem-svg {
   width: 100%;
   height: auto;
-  color: var(--text-primary);
-  filter: drop-shadow(0 0 30px var(--accent-muted));
+  display: none;
 }
 
-
-/* --- Branding text --- */
-.login-brand {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.login-brand h1 {
-  font-size: clamp(1.5rem, 4vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: var(--tracking-widest);
-  color: var(--text-primary);
-}
-
-.login-brand .subtitle {
+.login-subtitle {
   color: var(--text-muted);
-  font-size: var(--text-sm);
-  letter-spacing: var(--tracking-widest);
+  font-size: var(--text-xs);
+  letter-spacing: 0.3em;
   text-transform: uppercase;
+  margin-top: calc(var(--space-2) * -1);
 }
 
-
-/* --- Card --- */
-.login-card {
-  width: 100%;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  padding: var(--space-8);
-  box-shadow: var(--shadow-lg);
-}
-
-.login-card h2 {
-  text-align: center;
-  margin-bottom: var(--space-2);
-  font-size: var(--text-lg);
-  color: var(--text-primary);
-}
-
-.login-card .login-description {
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-6);
-}
-
-
-/* --- Google sign-in button --- */
-.btn-google {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-base);
-  font-weight: 500;
-  display: flex;
+/* ─── ENTER THE TOWER button ─── */
+.btn-enter {
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-3);
+  padding: var(--space-3) var(--space-8);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: background-color var(--transition-fast),
-              border-color var(--transition-fast),
-              box-shadow var(--transition-fast);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  margin-top: var(--space-4);
 }
 
-.btn-google:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
+.btn-enter:hover {
+  border-color: rgba(255,255,255,0.6);
+  box-shadow:
+    0 0 15px rgba(255,255,255,0.08),
+    0 0 40px rgba(255,255,255,0.04),
+    inset 0 0 15px rgba(255,255,255,0.03);
+  color: #fff;
 }
 
-.btn-google:active {
-  transform: translateY(1px);
+.btn-enter:active {
+  transform: scale(0.98);
 }
 
-.btn-google svg {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
+.btn-enter-text {
+  position: relative;
+  z-index: 1;
 }
 
-.btn-google.loading {
+.btn-enter-glow {
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.06) 50%, transparent 60%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+.btn-enter.loading {
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
-.btn-google.loading::after {
-  content: '';
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-
-/* --- Footer --- */
 .login-footer {
   text-align: center;
   color: var(--text-muted);
   font-size: var(--text-xs);
+  margin-top: var(--space-4);
+  opacity: 0.5;
 }
 
-
-/* --- Responsive --- */
-@media (max-width: 480px) {
-  .login-container {
-    gap: var(--space-4);
-  }
-
-  .login-card {
-    padding: var(--space-6);
-  }
-
-  .login-emblem {
-    max-width: 300px;
-  }
+@media (max-width: 640px) {
+  .emblem-image { max-height: 140px; }
+  .btn-enter { padding: var(--space-3) var(--space-6); font-size: var(--text-xs); }
 }

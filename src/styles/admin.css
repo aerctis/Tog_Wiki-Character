@@ -1,0 +1,199 @@
+/* src/styles/admin.css */
+/* Admin dashboard specific styles */
+
+.admin-page {
+  padding: var(--space-4);
+  max-width: var(--container-max);
+  margin: 0 auto;
+}
+
+.admin-batch-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ─── Player cards grid ─── */
+.player-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: var(--space-4);
+}
+
+.admin-player-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: var(--space-4);
+  position: relative;
+  transition: border-color var(--transition-fast);
+}
+
+.admin-player-card:hover {
+  border-color: var(--border-strong);
+}
+
+.apc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+
+.apc-header h4 {
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.apc-position {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.apc-level {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.apc-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.apc-stat {
+  background: var(--bg-tertiary);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 50px;
+}
+
+.apc-stat .label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.65rem;
+}
+
+.apc-stat .val {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.apc-warning {
+  font-size: var(--text-xs);
+  color: var(--warning);
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 2px solid var(--warning);
+}
+
+.apc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.apc-actions .btn-sm {
+  font-size: 0.7rem;
+  padding: var(--space-1) var(--space-2);
+}
+
+/* ─── Admin points section ─── */
+.admin-points-section {
+  background: var(--bg-tertiary);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.admin-points-section h4 {
+  font-size: var(--text-sm);
+  color: var(--accent);
+  margin-bottom: var(--space-2);
+}
+
+.admin-points-current {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+/* ─── Content editor form ─── */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .player-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Accent buttons ─── */
+.btn-accent {
+  background: var(--accent);
+  color: var(--text-inverse);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-accent:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-accent:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* ─── Charges ─── */
+.skill-charges {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: flex;
+  gap: 2px;
+}
+
+.charge-box {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  cursor: pointer;
+}
+
+.charge-box.used {
+  background: var(--accent);
+}

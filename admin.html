@@ -1,43 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ToG — Admin</title>
-  <meta name="theme-color" content="#0C0A09">
-
+  <title>ToG — Admin Dashboard</title>
+  <meta name="theme-color" content="#0A0A0A">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link rel="stylesheet" href="/src/styles/variables.css">
   <link rel="stylesheet" href="/src/styles/base.css">
   <link rel="stylesheet" href="/src/styles/forms.css">
   <link rel="stylesheet" href="/src/styles/notifications.css">
   <link rel="stylesheet" href="/src/styles/layout.css">
+  <link rel="stylesheet" href="/src/styles/widgets.css">
+  <link rel="stylesheet" href="/src/styles/modals.css">
+  <link rel="stylesheet" href="/src/styles/admin.css">
 </head>
-
-<body data-theme="dark-gold">
+<body data-theme="dark-red">
   <div class="sheet-page">
     <header class="sheet-header">
-      <div class="brand">
-        <span class="brand-accent">ToG</span>
-        <span>Admin</span>
-      </div>
+      <div class="brand"><span class="brand-accent">ToG</span><span>Admin</span></div>
       <nav>
         <a href="/sheet.html">Sheet</a>
         <a href="/compendium.html">Compendium</a>
         <a href="/admin.html" class="active">Admin</a>
       </nav>
       <div class="header-actions">
-        <button onclick="window.location.href='/'" class="btn-ghost btn-sm">Sign Out</button>
+        <span class="user-name" id="user-display-name"></span>
+        <button id="btn-sign-out" class="btn-ghost btn-sm">Sign Out</button>
       </div>
     </header>
-
-    <main id="admin-root"></main>
+    <main class="admin-page" id="admin-root">
+      <div style="text-align: center; padding: 4rem; color: var(--text-muted);">Loading...</div>
+    </main>
   </div>
-
+  <div id="modal-root"></div>
   <script type="module" src="/src/pages/admin/dashboard.js"></script>
 </body>
-
 </html>
