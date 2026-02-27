@@ -57,13 +57,6 @@ async function init() {
     return;
   }
 
-  document.getElementById('btn-settings')?.addEventListener('click', () => {
-    openSettingsModal(char, (updates) => {
-      Object.assign(char, updates);
-      queueSave(); // uses your existing autosave
-    });
-  });
-
   libs = libraries;
 
   // Merge loaded data with defaults
@@ -94,16 +87,23 @@ async function init() {
     char.beastPoints = rawChar.beastPoints || 0;
   } else {
     char = defaults;
-
-    if (char.appliedTheme) {
-      applyTheme(char.appliedTheme, char.appliedThemeVars || null);
-    }
-    if (char.layoutPreset) {
-      const preset = LAYOUT_PRESETS.find(l => l.id === char.layoutPreset);
-      if (preset) applyLayout(preset.grid);
-    }
     await saveCharacter(user.uid, buildSavePayload(char));
   }
+
+  if (char.appliedTheme) {
+    applyTheme(char.appliedTheme, char.appliedThemeVars || null);
+  }
+  if (char.layoutPreset) {
+    const preset = LAYOUT_PRESETS.find(l => l.id === char.layoutPreset);
+    if (preset) applyLayout(preset.grid);
+  }
+
+  document.getElementById('btn-settings')?.addEventListener('click', () => {
+    openSettingsModal(char, (updates) => {
+      Object.assign(char, updates);
+      queueSave(); // uses your existing autosave
+    });
+  });
 
   // Real-time listener for admin-pushed changes
   unsubCharListener = listenToCharacter(user.uid, (data) => {

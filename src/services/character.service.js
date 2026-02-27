@@ -127,7 +127,11 @@ export function getDefaultCharacterData(uid) {
     proficientSkills: [],
     currency: 0,
     specialItems: [],
-    backstory: ''
+    backstory: '',
+    appliedTheme: 'dark-red',
+    appliedThemeVars: null,
+    customThemes: [],
+    layoutPreset: 'default'
   };
 }
 
@@ -162,6 +166,10 @@ export function buildSavePayload(charData) {
     proficientSkills: charData.proficientSkills,
     currency: charData.currency,
     specialItems: charData.specialItems,
-    backstory: charData.backstory
+    backstory: charData.backstory,
+    appliedTheme: charData.appliedTheme || 'dark-red',
+    appliedThemeVars: charData.appliedThemeVars || null,
+    customThemes: charData.customThemes || [],
+    layoutPreset: charData.layoutPreset || 'default'
   };
 }

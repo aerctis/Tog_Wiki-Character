@@ -153,27 +153,54 @@ export function openSettingsModal(char, onSave) {
 
     // Save custom theme
     bodyEl.querySelector('#btn-save-custom-theme')?.addEventListener('click', () => {
-      const name = prompt('Name for your custom theme:', `Custom ${customThemes.length + 1}`);
-      if (!name) return;
-      const vars = getCustomVarsFromForm();
-      const newTheme = {
-        id: `custom-${Date.now()}`,
-        name,
-        vars,
-        preview: [vars['--bg-primary'], vars['--accent']]
+      // Use custom input modal instead of browser prompt
+      const inputBody = document.createElement('div');
+      inputBody.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+          <label style="font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase;">Theme Name</label>
+          <input type="text" id="custom-theme-name-input" value="Custom ${customThemes.length + 1}" placeholder="Enter theme name..." style="width: 100%;">
+          <div style="display: flex; gap: var(--space-2); justify-content: flex-end;">
+            <button class="btn-sm btn-ghost" id="ctn-cancel">Cancel</button>
+            <button class="btn-sm btn-accent" id="ctn-save">Save</button>
+          </div>
+        </div>
+      `;
+      openModal({ id: 'custom-theme-name', title: 'Save Custom Theme', body: inputBody, size: 'sm' });
+
+      const doSave = () => {
+        const name = inputBody.querySelector('#custom-theme-name-input')?.value?.trim();
+        if (!name) return;
+        closeModal('custom-theme-name');
+
+        const vars = getCustomVarsFromForm();
+        const newTheme = {
+          id: `custom-${Date.now()}`,
+          name,
+          vars,
+          preview: [vars['--bg-primary'], vars['--accent']]
+        };
+        customThemes.push(newTheme);
+        char.customThemes = customThemes;
+        char.appliedTheme = `custom-${customThemes.length - 1}`;
+        char.appliedThemeVars = vars;
+        applyTheme(null, vars);
+        onSave({
+          appliedTheme: char.appliedTheme,
+          appliedThemeVars: vars,
+          customThemes
+        });
+        showNotification(`Theme "${name}" saved!`, 'success');
+        render();
       };
-      customThemes.push(newTheme);
-      char.customThemes = customThemes;
-      char.appliedTheme = `custom-${customThemes.length - 1}`;
-      char.appliedThemeVars = vars;
-      applyTheme(null, vars);
-      onSave({
-        appliedTheme: char.appliedTheme,
-        appliedThemeVars: vars,
-        customThemes
+
+      inputBody.querySelector('#ctn-save')?.addEventListener('click', doSave);
+      inputBody.querySelector('#ctn-cancel')?.addEventListener('click', () => closeModal('custom-theme-name'));
+      // Allow Enter key
+      inputBody.querySelector('#custom-theme-name-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doSave();
       });
-      showNotification(`Theme "${name}" saved!`, 'success');
-      render();
+      // Focus the input
+      setTimeout(() => inputBody.querySelector('#custom-theme-name-input')?.focus(), 100);
     });
 
     // ── Render Layout Presets ──
