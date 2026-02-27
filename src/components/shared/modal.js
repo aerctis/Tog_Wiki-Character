@@ -21,6 +21,7 @@ function ensureRoot() {
 export function openModal({ id, title, body, size, onClose }) {
   const root = ensureRoot();
   const sizeClass = size ? `modal-content--${size}` : '';
+  const isElement = body instanceof HTMLElement;
 
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop active';
@@ -31,9 +32,13 @@ export function openModal({ id, title, body, size, onClose }) {
         <h3>${title || ''}</h3>
         <button class="btn-sm btn-ghost modal-close-btn" title="Close">&times;</button>
       </div>
-      <div class="modal-body" id="modal-body-${id}">${body || ''}</div>
+      <div class="modal-body" id="modal-body-${id}">${isElement ? '' : (body || '')}</div>
     </div>
   `;
+
+  if (isElement) {
+    backdrop.querySelector(`#modal-body-${id}`).appendChild(body);
+  }
 
   backdrop.querySelector('.modal-close-btn').addEventListener('click', () => closeModal(id));
   backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(id); });

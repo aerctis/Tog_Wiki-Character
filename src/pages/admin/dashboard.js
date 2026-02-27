@@ -671,9 +671,9 @@ function renderContentTab() {
         <div class="card" data-edit-content="${entry.id}" style="position: relative;">
           <img src="${entry.image || entry.icon || ''}" alt="${entry.name}">
           <div class="card-title">${entry.name || 'Untitled'}</div>
-          <div class="card-subtitle">${entry.isDiscovered !== false ? '👁 Discovered' : '🔒 Hidden'}</div>
+          <div class="card-subtitle">${entry.isDiscovered !== false ? '◉ Visible' : '◯ Hidden'}</div>
           <div class="card-actions">
-            <button class="btn-sm" data-toggle-disc="${entry.id}" title="Toggle discovery">${entry.isDiscovered !== false ? '🔒' : '👁'}</button>
+            <button class="btn-sm" data-toggle-disc="${entry.id}" title="Toggle discovery">${entry.isDiscovered !== false ? '◯' : '◉'}</button>
           </div>
         </div>
       `).join('') || '<p style="color: var(--text-muted);">No entries.</p>';
@@ -710,7 +710,13 @@ function openContentEditor(type, id) {
     formHtml = `
       <div class="admin-form-grid">
         <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
-        <div class="field-group"><label>Icon URL</label><input type="text" id="ce-icon" value="${esc(s.icon || '')}"></div>
+        <div class="field-group"><label>Icon</label>
+          <div style="display:flex;gap:var(--space-2);align-items:center;">
+            <input type="text" id="ce-icon" value="${esc(s.icon || '')}" placeholder="Paste URL or upload" style="flex:1;">
+            <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
+            <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+          </div>
+        </div>
         <div class="field-group"><label>Skill Type / Category</label><input type="text" id="ce-skillType" value="${esc(s.skillType || '')}"></div>
         <div class="field-group"><label>Position Tags (comma-sep)</label><input type="text" id="ce-positions" value="${(s.positionTags || []).join(', ')}"></div>
         <div class="field-group"><label>Max Level</label><input type="number" id="ce-maxLevel" value="${s.maxLevel || 5}"></div>
@@ -727,7 +733,14 @@ function openContentEditor(type, id) {
     formHtml = `
       <div class="admin-form-grid">
         <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
-        <div class="field-group"><label>Image URL</label><input type="text" id="ce-image" value="${esc(s.image || '')}"></div>
+        <div class="field-group"><label>Image</label>
+          <div style="display:flex;gap:var(--space-2);align-items:center;">
+            <input type="text" id="ce-image" value="${esc(s.image || '')}" placeholder="Paste URL or upload" style="flex:1;">
+            <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
+            <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+          </div>
+          ${s.image ? '<img src="' + '${esc(s.image)}' + '" style="max-height:40px;margin-top:4px;opacity:0.7;">' : ''}
+        </div>
         <div class="field-group"><label>Type</label><select id="ce-type">
           ${['weapon', 'armor', 'accessory', 'lighthouse', 'module'].map(t => `<option ${s.type === t ? 'selected' : ''}>${t}</option>`).join('')}
         </select></div>
@@ -748,7 +761,14 @@ function openContentEditor(type, id) {
     formHtml = `
       <div class="admin-form-grid">
         <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
-        <div class="field-group"><label>Image URL</label><input type="text" id="ce-image" value="${esc(s.image || '')}"></div>
+        <div class="field-group"><label>Image</label>
+          <div style="display:flex;gap:var(--space-2);align-items:center;">
+            <input type="text" id="ce-image" value="${esc(s.image || '')}" placeholder="Paste URL or upload" style="flex:1;">
+            <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
+            <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+          </div>
+          ${s.image ? '<img src="' + '${esc(s.image)}' + '" style="max-height:40px;margin-top:4px;opacity:0.7;">' : ''}
+        </div>
         <div class="field-group"><label>Tier (1-5)</label><input type="number" id="ce-tier" min="1" max="5" value="${s.tier || 1}"></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%; min-height:80px;">${esc(s.description || '')}</textarea></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Base Stats (JSON: {hp, attack, defense, speed})</label><input type="text" id="ce-baseStats" value='${JSON.stringify(s.baseStats || {hp:10,attack:5,defense:5,speed:5})}'></div>
@@ -769,6 +789,26 @@ function openContentEditor(type, id) {
   openModal({ id: 'content-editor', title: `${existing ? 'Edit' : 'New'} ${type.slice(0, -1)}`, size: 'lg', body: formHtml + footer });
 
   document.getElementById('ce-cancel')?.addEventListener('click', () => closeModal('content-editor'));
+
+  // Image upload handler — converts file to base64 data URL
+  const uploadBtn = document.getElementById('ce-img-upload-btn');
+  const fileInput = document.getElementById('ce-img-file');
+  if (uploadBtn && fileInput) {
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (file.size > 500000) { showNotification('Image too large (max 500KB). Compress or use a URL.', 'danger'); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const target = document.getElementById('ce-image') || document.getElementById('ce-icon');
+        if (target) { target.value = e.target.result; }
+        showNotification('Image uploaded', 'success');
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   document.getElementById('ce-delete')?.addEventListener('click', async () => {
     if (!await showConfirmation('Delete this entry? This cannot be undone.', { danger: true })) return;
     const deleteFn = type === 'skills' ? deleteSkill : type === 'items' ? deleteItem : deleteBeast;

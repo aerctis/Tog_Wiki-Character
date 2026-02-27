@@ -1,55 +1,35 @@
 // src/pages/login.js
-// Login page controller — handles Google sign-in and redirect
-import { signInWithGoogle, waitForAuth, isCurrentUserAdmin } from '../services/auth.service.js';
+// Login page — splash screen. Shows the cool Tower of God landing.
+// If already logged in, clicking ENTER just redirects immediately.
+import { signInWithGoogle, waitForAuth } from '../services/auth.service.js';
 import { initNotifications, showNotification } from '../components/shared/notification.js';
 
-/**
- * Initialize the login page.
- * If user is already authenticated, redirect immediately.
- */
-export async function initLoginPage() {
+async function init() {
   initNotifications();
-
-  // Check if already logged in
   const user = await waitForAuth();
-  if (user) {
-    redirectAfterLogin();
-    return;
-  }
 
-  // Attach sign-in handler
-  const signInBtn = document.getElementById('btn-sign-in');
-  if (signInBtn) {
-    signInBtn.addEventListener('click', handleSignIn);
-  }
-}
-
-async function handleSignIn() {
   const btn = document.getElementById('btn-sign-in');
-  btn.classList.add('loading');
-  btn.disabled = true;
+  if (!btn) return;
 
-  try {
-    await signInWithGoogle();
-    redirectAfterLogin();
-  } catch (error) {
-    console.error('Sign-in failed:', error);
-    btn.classList.remove('loading');
-    btn.disabled = false;
-
-    // User closed popup — not an error worth showing
-    if (error.code === 'auth/popup-closed-by-user') return;
-    if (error.code === 'auth/cancelled-popup-request') return;
-
-    showNotification('Sign-in failed. Please try again.', 'danger');
+  if (user) {
+    // Already logged in — button takes you straight to sheet
+    btn.addEventListener('click', () => { window.location.href = '/sheet.html'; });
+  } else {
+    // Not logged in — trigger Google sign-in
+    btn.addEventListener('click', async () => {
+      btn.classList.add('loading');
+      btn.disabled = true;
+      try {
+        await signInWithGoogle();
+        window.location.href = '/sheet.html';
+      } catch (error) {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') return;
+        showNotification('Sign-in failed.', 'danger');
+      }
+    });
   }
 }
 
-function redirectAfterLogin() {
-  // For now, go straight to character sheet
-  // When multi-character is implemented, go to /characters instead
-  window.location.href = '/sheet.html';
-}
-
-// Auto-init when script loads
-initLoginPage();
+init();
