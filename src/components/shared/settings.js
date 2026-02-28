@@ -97,7 +97,7 @@ export function openSettingsModal(char, onSave) {
             <div style="background: ${colors[1]};"></div>
           </div>
           <div class="theme-swatch-label">${esc(t.name || 'Custom')}</div>
-          ${t.isCustom ? `<button class="delete-btn" data-delete-idx="${t.customIndex}">&times;</button>` : ''}
+          ${t.isCustom ? `<button class="delete-btn" data-delete-idx="${t.customIndex}">×</button>` : ''}
         </div>`;
     }).join('');
 
