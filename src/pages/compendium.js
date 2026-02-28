@@ -1,10 +1,12 @@
 // src/pages/compendium.js
 // Compendium page — browse items, skills, beasts, wiki, session logs.
-// Admin users can create/edit wiki pages and session logs.
+// Discovery levels: undiscovered → seen → learnable → learned (per-player)
 
 import { waitForAuth, signOut, isCurrentUserAdmin } from '../services/auth.service.js';
 import { fetchAllLibraries } from '../services/library.service.js';
 import { fetchWikiPages, saveWikiPage, deleteWikiPage, fetchSessionLogs, saveSessionLog, deleteSessionLog } from '../services/wiki.service.js';
+import { fetchPlayerDiscovery, getDiscoveryLevel, setDiscoveryLevel, setDiscoveryLevelForAll, DISCOVERY_LEVELS } from '../services/discovery.service.js';
+import { getPartyMembers } from '../services/admin.service.js';
 import { initNotifications, showNotification } from '../components/shared/notification.js';
 import { openModal, closeModal, getModalBody, showConfirmation } from '../components/shared/modal.js';
 import { parseTextile, slugify } from '../services/wiki-parser.js';
@@ -18,6 +20,8 @@ let libs = { skills: [], items: [], beasts: [], synergies: [] };
 let wikiPages = [];
 let sessionLogs = [];
 let activeSection = 'items'; // items | skills | beasts | wiki | sessions
+let playerDiscovery = { skills: {}, items: {}, beasts: {} };
+let partyUids = []; // for admin bulk discovery
 
 // ─── Init ─────────────────────────────────────────────────────────
 async function init() {
@@ -27,7 +31,6 @@ async function init() {
   if (!user) { window.location.href = '/'; return; }
   currentUser = user;
 
-  // Header
   const nameEl = document.getElementById('user-display-name');
   if (nameEl) nameEl.textContent = user.displayName || '';
 
@@ -36,21 +39,25 @@ async function init() {
     window.location.href = '/';
   });
 
-  // Admin nav
   isAdmin = await isCurrentUserAdmin();
   const adminLink = document.getElementById('nav-admin');
   if (adminLink && isAdmin) adminLink.style.display = '';
 
-  // Load data
   try {
-    const [libData, wiki, logs] = await Promise.all([
+    const promises = [
       fetchAllLibraries(),
       fetchWikiPages(),
-      fetchSessionLogs()
-    ]);
+      fetchSessionLogs(),
+      fetchPlayerDiscovery(user.uid)
+    ];
+    if (isAdmin) promises.push(getPartyMembers().catch(() => []));
+
+    const [libData, wiki, logs, disc, party] = await Promise.all(promises);
     libs = libData;
     wikiPages = wiki;
     sessionLogs = logs;
+    playerDiscovery = disc;
+    if (party) partyUids = party;
   } catch (err) {
     console.error('Failed to load compendium data:', err);
     showNotification('Failed to load data.', 'danger');
@@ -66,6 +73,21 @@ function formatDate(d) {
   if (!d) return '';
   const date = d.toDate ? d.toDate() : new Date(d);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+const QUESTION_SVG = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23111%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2248%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2228%22>?</text></svg>";
+const ITEM_PLACEHOLDER = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23161618%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2224%22>⚔</text></svg>";
+const SKILL_PLACEHOLDER = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23161618%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2224%22>✦</text></svg>";
+const BEAST_PLACEHOLDER = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23161618%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2224%22>◈</text></svg>";
+
+// Discovery CSS class based on level
+function discClass(level) {
+  switch (level) {
+    case 'learned': return 'disc-learned';
+    case 'learnable': return 'disc-learnable';
+    case 'seen': return 'disc-seen';
+    default: return 'disc-undiscovered';
+  }
 }
 
 // ─── Layout ───────────────────────────────────────────────────────
@@ -100,7 +122,6 @@ function renderLayout() {
     </div>
   `;
 
-  // Sidebar navigation
   root.querySelectorAll('[data-section]').forEach(link => {
     link.addEventListener('click', () => {
       activeSection = link.dataset.section;
@@ -122,17 +143,76 @@ function renderSection() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SHARED: Admin Discovery Controls
+// ══════════════════════════════════════════════════════════════════
+function renderAdminDiscoveryBtn(category, id, currentLevel) {
+  if (!isAdmin) return '';
+  return `
+    <div class="admin-discovery-controls" style="margin-top: var(--space-2); display: flex; gap: var(--space-1); flex-wrap: wrap;">
+      <select class="discovery-select" data-disc-cat="${category}" data-disc-id="${id}" style="font-size: 0.6rem; padding: 2px 4px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-secondary);">
+        <option value="undiscovered" ${currentLevel==='undiscovered'?'selected':''}>Undiscovered</option>
+        <option value="seen" ${currentLevel==='seen'?'selected':''}>Seen</option>
+        <option value="learnable" ${currentLevel==='learnable'?'selected':''}>Learnable</option>
+        <option value="learned" ${currentLevel==='learned'?'selected':''}>Learned</option>
+      </select>
+      <button class="btn-xs btn-ghost disc-set-player" data-disc-cat="${category}" data-disc-id="${id}" title="Set for this player only" style="font-size: 0.55rem; padding: 1px 4px;">This Player</button>
+      <button class="btn-xs btn-accent disc-set-all" data-disc-cat="${category}" data-disc-id="${id}" title="Set for ALL players" style="font-size: 0.55rem; padding: 1px 4px;">All Players</button>
+    </div>
+  `;
+}
+
+function attachAdminDiscoveryHandlers(container) {
+  if (!isAdmin) return;
+
+  container.querySelectorAll('.disc-set-player').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const cat = btn.dataset.discCat;
+      const id = btn.dataset.discId;
+      const select = container.querySelector(`.discovery-select[data-disc-cat="${cat}"][data-disc-id="${id}"]`);
+      if (!select) return;
+      const level = select.value;
+      try {
+        await setDiscoveryLevel(currentUser.uid, cat, id, level);
+        playerDiscovery[cat][id] = level;
+        showNotification(`Set to ${level} for this player`, 'success');
+        renderSection();
+      } catch (err) {
+        showNotification('Failed to update discovery', 'danger');
+      }
+    });
+  });
+
+  container.querySelectorAll('.disc-set-all').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const cat = btn.dataset.discCat;
+      const id = btn.dataset.discId;
+      const select = container.querySelector(`.discovery-select[data-disc-cat="${cat}"][data-disc-id="${id}"]`);
+      if (!select) return;
+      const level = select.value;
+      const allUids = partyUids.length > 0 ? partyUids : [currentUser.uid];
+      const yes = await showConfirmation(`Set "${level}" for ALL ${allUids.length} players?`);
+      if (!yes) return;
+      try {
+        await setDiscoveryLevelForAll(allUids, cat, id, level);
+        playerDiscovery[cat][id] = level;
+        showNotification(`Set to ${level} for ${allUids.length} players`, 'success');
+        renderSection();
+      } catch (err) {
+        showNotification('Failed to update discovery', 'danger');
+      }
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
 // EQUIPMENT SECTION
 // ══════════════════════════════════════════════════════════════════
 function renderItemsSection() {
   const content = document.getElementById('comp-content');
-  const discovered = libs.items.filter(i => i.isDiscovered !== false);
-  const undiscovered = libs.items.filter(i => i.isDiscovered === false);
 
   content.innerHTML = `
     <div class="section-header">
       <h2>Equipment</h2>
-      <span style="font-size: var(--text-xs); color: var(--text-muted);">${discovered.length} discovered / ${libs.items.length} total</span>
     </div>
     <div class="compendium-search">
       <input type="text" id="items-search" placeholder="Search equipment...">
@@ -143,22 +223,40 @@ function renderItemsSection() {
   const renderGrid = (filter = '') => {
     const grid = document.getElementById('items-grid');
     const items = libs.items.filter(i => {
-      if (filter && !(i.name || '').toLowerCase().includes(filter)) return false;
+      const level = getDiscoveryLevel(playerDiscovery, 'items', i.id);
+      // Only filter by name if learnable/learned (player can see name)
+      if (filter) {
+        if (level === 'learned' || level === 'learnable') {
+          return (i.name || '').toLowerCase().includes(filter);
+        }
+        return false; // Can't search undiscovered/seen items
+      }
       return true;
     }).sort((a,b) => {
-      // Discovered first, then alphabetical
-      if (a.isDiscovered !== false && b.isDiscovered === false) return -1;
-      if (a.isDiscovered === false && b.isDiscovered !== false) return 1;
+      const la = getDiscoveryLevel(playerDiscovery, 'items', a.id);
+      const lb = getDiscoveryLevel(playerDiscovery, 'items', b.id);
+      const order = { learned: 0, learnable: 1, seen: 2, undiscovered: 3 };
+      if (order[la] !== order[lb]) return order[la] - order[lb];
       return (a.name || '').localeCompare(b.name || '');
     });
 
     grid.innerHTML = items.map(item => {
-      const disc = item.isDiscovered !== false;
+      const level = getDiscoveryLevel(playerDiscovery, 'items', item.id);
+      const canClick = level === 'learned' || level === 'learnable';
+      const showName = level === 'learned' || level === 'learnable';
+      const showImage = level !== 'undiscovered';
+
+      let imgSrc;
+      if (level === 'undiscovered') imgSrc = QUESTION_SVG;
+      else if (level === 'seen') imgSrc = item.image || ITEM_PLACEHOLDER;
+      else imgSrc = item.image || ITEM_PLACEHOLDER;
+
       return `
-        <div class="comp-card ${disc ? '' : 'undiscovered'}" ${disc ? `data-item-id="${item.id}"` : ''}>
-          <img class="comp-card-img" src="${disc ? (item.image || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23161618%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2224%22>⚔</text></svg>') : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23111%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2248%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2228%22>?</text></svg>'}" alt="${disc ? esc(item.name) : '???'}">
-          <div class="comp-card-name">${disc ? esc(item.name) : '???'}</div>
-          ${disc && item.equipmentType ? `<div class="comp-card-meta">${esc(item.equipmentType)}</div>` : ''}
+        <div class="comp-card ${discClass(level)}" ${canClick ? `data-item-id="${item.id}"` : ''}>
+          <img class="comp-card-img" src="${imgSrc}" alt="${showName ? esc(item.name) : '???'}">
+          <div class="comp-card-name">${showName ? esc(item.name) : (level === 'seen' ? '???' : '???')}</div>
+          ${showName && item.equipmentType ? `<div class="comp-card-meta">${esc(item.equipmentType)}</div>` : ''}
+          ${isAdmin ? `<div class="comp-card-disc-badge">${level}</div>` : ''}
         </div>`;
     }).join('') || '<div class="comp-empty"><div class="comp-empty-icon">⚔</div><div class="comp-empty-text">No equipment found</div></div>';
 
@@ -175,12 +273,14 @@ function renderItemsSection() {
 }
 
 function openItemDetail(item) {
+  const level = getDiscoveryLevel(playerDiscovery, 'items', item.id);
   const statsHtml = item.statBonuses ? Object.entries(item.statBonuses)
     .filter(([k,v]) => v)
     .map(([stat, val]) => `<div class="detail-meta-item"><strong>${esc(stat)}:</strong> +${val}</div>`)
     .join('') : '';
 
-  const body = `
+  const bodyEl = document.createElement('div');
+  bodyEl.innerHTML = `
     <div class="detail-panel">
       <div>
         <img class="detail-image" src="${item.image || ''}" alt="${esc(item.name)}">
@@ -202,10 +302,12 @@ function openItemDetail(item) {
           <div style="font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-widest); color: var(--text-muted); margin-bottom: var(--space-2); margin-top: var(--space-3); font-weight: 500;">Special Effect</div>
           <div class="detail-desc">${esc(item.specialEffect)}</div>
         ` : ''}
+        ${renderAdminDiscoveryBtn('items', item.id, level)}
       </div>
     </div>
   `;
-  openModal({ id: 'item-detail', title: item.name, body, size: 'lg' });
+  openModal({ id: 'item-detail', title: item.name, body: bodyEl, size: 'lg' });
+  attachAdminDiscoveryHandlers(bodyEl);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -213,16 +315,12 @@ function openItemDetail(item) {
 // ══════════════════════════════════════════════════════════════════
 function renderSkillsSection() {
   const content = document.getElementById('comp-content');
-  const discovered = libs.skills.filter(s => s.isDiscovered !== false);
-
-  // Group skills by position
   const positions = ['All', ...POSITIONS];
   let activePos = 'All';
 
   content.innerHTML = `
     <div class="section-header">
       <h2>Skills</h2>
-      <span style="font-size: var(--text-xs); color: var(--text-muted);">${discovered.length} discovered / ${libs.skills.length} total</span>
     </div>
     <div class="comp-tabs" id="skill-pos-tabs"></div>
     <div class="compendium-search">
@@ -247,22 +345,39 @@ function renderSkillsSection() {
   const renderGrid = (filter = '') => {
     const grid = document.getElementById('skills-grid');
     const skills = libs.skills.filter(s => {
-      if (filter && !(s.name || '').toLowerCase().includes(filter)) return false;
       if (activePos !== 'All' && !(s.positionTags || []).includes(activePos)) return false;
+      const level = getDiscoveryLevel(playerDiscovery, 'skills', s.id);
+      if (filter) {
+        if (level === 'learned' || level === 'learnable') {
+          return (s.name || '').toLowerCase().includes(filter);
+        }
+        return false;
+      }
       return true;
     }).sort((a,b) => {
-      if (a.isDiscovered !== false && b.isDiscovered === false) return -1;
-      if (a.isDiscovered === false && b.isDiscovered !== false) return 1;
+      const la = getDiscoveryLevel(playerDiscovery, 'skills', a.id);
+      const lb = getDiscoveryLevel(playerDiscovery, 'skills', b.id);
+      const order = { learned: 0, learnable: 1, seen: 2, undiscovered: 3 };
+      if (order[la] !== order[lb]) return order[la] - order[lb];
       return (a.name || '').localeCompare(b.name || '');
     });
 
     grid.innerHTML = skills.map(skill => {
-      const disc = skill.isDiscovered !== false;
+      const level = getDiscoveryLevel(playerDiscovery, 'skills', skill.id);
+      const canClick = level === 'learned' || level === 'learnable';
+      const showName = level === 'learned' || level === 'learnable';
+
+      let imgSrc;
+      if (level === 'undiscovered') imgSrc = QUESTION_SVG;
+      else if (level === 'seen') imgSrc = skill.icon || SKILL_PLACEHOLDER;
+      else imgSrc = skill.icon || SKILL_PLACEHOLDER;
+
       return `
-        <div class="comp-card ${disc ? '' : 'undiscovered'}" ${disc ? `data-skill-id="${skill.id}"` : ''}>
-          <img class="comp-card-img" src="${disc ? (skill.icon || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23161618%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2224%22>✦</text></svg>') : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23111%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2248%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2228%22>?</text></svg>'}" alt="${disc ? esc(skill.name) : '???'}">
-          <div class="comp-card-name">${disc ? esc(skill.name) : '???'}</div>
-          ${disc ? `<div class="comp-card-meta">${(skill.positionTags || []).join(', ') || skill.skillType || ''}</div>` : ''}
+        <div class="comp-card ${discClass(level)}" ${canClick ? `data-skill-id="${skill.id}"` : ''}>
+          <img class="comp-card-img" src="${imgSrc}" alt="${showName ? esc(skill.name) : '???'}">
+          <div class="comp-card-name">${showName ? esc(skill.name) : '???'}</div>
+          ${showName ? `<div class="comp-card-meta">${(skill.positionTags || []).join(', ') || skill.skillType || ''}</div>` : ''}
+          ${isAdmin ? `<div class="comp-card-disc-badge">${level}</div>` : ''}
         </div>`;
     }).join('') || '<div class="comp-empty"><div class="comp-empty-icon">✦</div><div class="comp-empty-text">No skills found</div></div>';
 
@@ -280,7 +395,7 @@ function renderSkillsSection() {
 }
 
 function openSkillDetail(skill) {
-  // Build effects table
+  const level = getDiscoveryLevel(playerDiscovery, 'skills', skill.id);
   let tableHtml = '';
   if (skill.effects && skill.effects.length > 0) {
     let rows = '';
@@ -304,7 +419,8 @@ function openSkillDetail(skill) {
     `;
   }
 
-  const body = `
+  const bodyEl = document.createElement('div');
+  bodyEl.innerHTML = `
     <div class="detail-panel">
       <div>
         <img class="detail-image" src="${skill.icon || ''}" alt="${esc(skill.name)}">
@@ -320,10 +436,12 @@ function openSkillDetail(skill) {
         <div class="detail-title">${esc(skill.name)}</div>
         ${skill.description ? `<div class="detail-desc">${esc(skill.description)}</div>` : ''}
         ${tableHtml}
+        ${renderAdminDiscoveryBtn('skills', skill.id, level)}
       </div>
     </div>
   `;
-  openModal({ id: 'skill-detail', title: skill.name, body, size: 'lg' });
+  openModal({ id: 'skill-detail', title: skill.name, body: bodyEl, size: 'lg' });
+  attachAdminDiscoveryHandlers(bodyEl);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -331,12 +449,10 @@ function openSkillDetail(skill) {
 // ══════════════════════════════════════════════════════════════════
 function renderBeastsSection() {
   const content = document.getElementById('comp-content');
-  const discovered = libs.beasts.filter(b => b.isDiscovered !== false);
 
   content.innerHTML = `
     <div class="section-header">
       <h2>Bestiary</h2>
-      <span style="font-size: var(--text-xs); color: var(--text-muted);">${discovered.length} discovered / ${libs.beasts.length} total</span>
     </div>
     <div class="compendium-search">
       <input type="text" id="beasts-search" placeholder="Search beasts...">
@@ -347,22 +463,38 @@ function renderBeastsSection() {
   const renderGrid = (filter = '') => {
     const grid = document.getElementById('beasts-grid');
     const beasts = libs.beasts.filter(b => {
-      if (filter && !(b.name || '').toLowerCase().includes(filter)) return false;
+      const level = getDiscoveryLevel(playerDiscovery, 'beasts', b.id);
+      if (filter) {
+        if (level === 'learned' || level === 'learnable') {
+          return (b.name || '').toLowerCase().includes(filter);
+        }
+        return false;
+      }
       return true;
     }).sort((a,b) => {
-      if (a.isDiscovered !== false && b.isDiscovered === false) return -1;
-      if (a.isDiscovered === false && b.isDiscovered !== false) return 1;
+      const la = getDiscoveryLevel(playerDiscovery, 'beasts', a.id);
+      const lb = getDiscoveryLevel(playerDiscovery, 'beasts', b.id);
+      const order = { learned: 0, learnable: 1, seen: 2, undiscovered: 3 };
+      if (order[la] !== order[lb]) return order[la] - order[lb];
       return (a.name || '').localeCompare(b.name || '');
     });
 
     grid.innerHTML = beasts.map(beast => {
-      const disc = beast.isDiscovered !== false;
+      const level = getDiscoveryLevel(playerDiscovery, 'beasts', beast.id);
+      const canClick = level === 'learned' || level === 'learnable';
+      const showName = level === 'learned' || level === 'learnable';
       const tierLabel = BEAST_TIERS[beast.tier]?.label || '';
+
+      let imgSrc;
+      if (level === 'undiscovered') imgSrc = QUESTION_SVG;
+      else imgSrc = beast.image || BEAST_PLACEHOLDER;
+
       return `
-        <div class="comp-card ${disc ? '' : 'undiscovered'}" ${disc ? `data-beast-id="${beast.id}"` : ''}>
-          <img class="comp-card-img" src="${disc ? (beast.image || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23161618%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2224%22>◈</text></svg>') : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%23111%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2248%22 text-anchor=%22middle%22 fill=%22%23333%22 font-size=%2228%22>?</text></svg>'}" alt="${disc ? esc(beast.name) : '???'}">
-          <div class="comp-card-name">${disc ? esc(beast.name) : '???'}</div>
-          ${disc && tierLabel ? `<div class="comp-card-meta">${tierLabel}</div>` : ''}
+        <div class="comp-card ${discClass(level)}" ${canClick ? `data-beast-id="${beast.id}"` : ''}>
+          <img class="comp-card-img" src="${imgSrc}" alt="${showName ? esc(beast.name) : '???'}">
+          <div class="comp-card-name">${showName ? esc(beast.name) : '???'}</div>
+          ${showName && tierLabel ? `<div class="comp-card-meta">${tierLabel}</div>` : ''}
+          ${isAdmin ? `<div class="comp-card-disc-badge">${level}</div>` : ''}
         </div>`;
     }).join('') || '<div class="comp-empty"><div class="comp-empty-icon">◈</div><div class="comp-empty-text">No beasts found</div></div>';
 
@@ -379,6 +511,7 @@ function renderBeastsSection() {
 }
 
 function openBeastDetail(beast) {
+  const level = getDiscoveryLevel(playerDiscovery, 'beasts', beast.id);
   const stats = calculateBeastStats(beast, 1);
   const abilities = getBeastAbilities(beast, 1);
   const tierLabel = BEAST_TIERS[beast.tier]?.label || `Tier ${beast.tier}`;
@@ -397,7 +530,8 @@ function openBeastDetail(beast) {
     `;
   }
 
-  const body = `
+  const bodyEl = document.createElement('div');
+  bodyEl.innerHTML = `
     <div class="detail-panel">
       <div>
         <img class="detail-image" src="${beast.image || ''}" alt="${esc(beast.name)}">
@@ -417,32 +551,45 @@ function openBeastDetail(beast) {
           <div class="beast-stat-box"><div class="beast-stat-label">SPD</div><div class="beast-stat-value">${stats.speed}</div></div>
         </div>
         ${abilitiesHtml}
+        ${renderAdminDiscoveryBtn('beasts', beast.id, level)}
       </div>
     </div>
   `;
-  openModal({ id: 'beast-detail', title: beast.name, body, size: 'lg' });
+  openModal({ id: 'beast-detail', title: beast.name, body: bodyEl, size: 'lg' });
+  attachAdminDiscoveryHandlers(bodyEl);
 }
 
 // ══════════════════════════════════════════════════════════════════
-// WIKI SECTION — main page as landing, inline navigation
+// WIKI SECTION — with browser back/forward support
 // ══════════════════════════════════════════════════════════════════
 let wikiViewStack = []; // breadcrumb history
+let wikiHistoryIndex = -1; // current position in history
+let wikiHistory = []; // full history for back/forward
+let popstateActive = false;
 
-function renderWikiSection(pageId) {
+function wikiPushHistory(pageId) {
+  // Trim forward history
+  if (wikiHistoryIndex < wikiHistory.length - 1) {
+    wikiHistory = wikiHistory.slice(0, wikiHistoryIndex + 1);
+  }
+  wikiHistory.push(pageId);
+  wikiHistoryIndex = wikiHistory.length - 1;
+  history.pushState({ wiki: pageId }, '', `#wiki/${pageId || ''}`);
+}
+
+function renderWikiSection(pageId, fromPopState) {
   const content = document.getElementById('comp-content');
 
-  // Decide what to show: specific page, or main page, or all-pages list
   if (pageId === '__all__') {
+    if (!fromPopState) wikiPushHistory('__all__');
     renderWikiAllPages();
     return;
   }
 
-  // Find the page to render
   let page;
   if (pageId) {
     page = wikiPages.find(p => p.id === pageId);
   } else {
-    // Default: show main page
     page = wikiPages.find(p => p.isMainPage) || wikiPages[0];
   }
 
@@ -454,13 +601,16 @@ function renderWikiSection(pageId) {
           ${isAdmin ? '<button class="btn-sm btn-accent" id="btn-new-wiki">+ New Page</button>' : ''}
         </div>
       </div>
-      <div class="comp-empty"><div class="comp-empty-icon">◉</div><div class="comp-empty-text">No wiki pages yet. ${isAdmin ? 'Create the first one!' : ''}</div></div>
+      <div class="comp-empty"><div class="comp-empty-icon">◉</div><div class="comp-empty-text">No wiki pages yet.</div></div>
     `;
     document.getElementById('btn-new-wiki')?.addEventListener('click', () => openWikiEditor(null));
     return;
   }
 
-  // Track in breadcrumb stack
+  // Push browser history if not from popstate
+  if (!fromPopState) wikiPushHistory(page.id);
+
+  // Breadcrumb stack
   const stackIdx = wikiViewStack.indexOf(page.id);
   if (stackIdx >= 0) {
     wikiViewStack = wikiViewStack.slice(0, stackIdx + 1);
@@ -468,7 +618,6 @@ function renderWikiSection(pageId) {
     wikiViewStack.push(page.id);
   }
 
-  // Wiki link handler — returns clickable spans
   const wikiLinkHandler = (slug, label) => {
     const target = wikiPages.find(p =>
       slugify(p.title || '') === slugify(slug) ||
@@ -480,7 +629,6 @@ function renderWikiSection(pageId) {
     return `<span style="color: var(--text-muted); border-bottom: 1px dashed var(--text-muted); cursor: default;" title="Page not found: ${esc(slug)}">${esc(label)}</span>`;
   };
 
-  // Render content based on format
   let renderedContent;
   if (page.format === 'markdown' || page.format === 'md') {
     renderedContent = renderMarkdown(page.content || '');
@@ -488,7 +636,7 @@ function renderWikiSection(pageId) {
     renderedContent = parseTextile(page.content || '', wikiLinkHandler);
   }
 
-  // Build breadcrumbs
+  // Breadcrumbs
   const breadcrumbs = wikiViewStack.map((id, i) => {
     const p = wikiPages.find(w => w.id === id);
     const name = p?.title || id;
@@ -498,10 +646,16 @@ function renderWikiSection(pageId) {
     return `<span class="wiki-link" data-wiki-nav="${id}" style="color: var(--accent-text); cursor: pointer;">${esc(name)}</span>`;
   }).join(' <span style="color: var(--text-muted); margin: 0 var(--space-1);">›</span> ');
 
+  // Back/forward buttons
+  const canBack = wikiHistoryIndex > 0;
+  const canForward = wikiHistoryIndex < wikiHistory.length - 1;
+
   content.innerHTML = `
     <div class="section-header">
       <h2>Wiki</h2>
       <div class="section-header-actions">
+        <button class="btn-sm btn-ghost ${canBack ? '' : 'disabled'}" id="btn-wiki-back" title="Back" ${canBack ? '' : 'disabled'}>←</button>
+        <button class="btn-sm btn-ghost ${canForward ? '' : 'disabled'}" id="btn-wiki-forward" title="Forward" ${canForward ? '' : 'disabled'}>→</button>
         <button class="btn-sm btn-ghost" id="btn-wiki-all">All Pages</button>
         ${isAdmin ? '<button class="btn-sm btn-accent" id="btn-new-wiki">+ New Page</button>' : ''}
       </div>
@@ -520,7 +674,7 @@ function renderWikiSection(pageId) {
     ` : ''}
   `;
 
-  // Attach wiki link navigation (inline, not modal)
+  // Navigation event listeners
   content.querySelectorAll('[data-wiki-nav]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -528,14 +682,32 @@ function renderWikiSection(pageId) {
     });
   });
 
-  // Header buttons
+  // Back/Forward buttons
+  document.getElementById('btn-wiki-back')?.addEventListener('click', () => {
+    if (wikiHistoryIndex > 0) {
+      wikiHistoryIndex--;
+      const prevId = wikiHistory[wikiHistoryIndex];
+      wikiViewStack = [];
+      renderWikiSection(prevId, true);
+      history.back();
+    }
+  });
+  document.getElementById('btn-wiki-forward')?.addEventListener('click', () => {
+    if (wikiHistoryIndex < wikiHistory.length - 1) {
+      wikiHistoryIndex++;
+      const nextId = wikiHistory[wikiHistoryIndex];
+      wikiViewStack = [];
+      renderWikiSection(nextId, true);
+      history.forward();
+    }
+  });
+
   document.getElementById('btn-wiki-all')?.addEventListener('click', () => {
     wikiViewStack = [];
     renderWikiSection('__all__');
   });
   document.getElementById('btn-new-wiki')?.addEventListener('click', () => openWikiEditor(null));
 
-  // Admin actions
   document.getElementById('wiki-edit-btn')?.addEventListener('click', () => openWikiEditor(page));
   document.getElementById('wiki-delete-btn')?.addEventListener('click', async () => {
     const yes = await showConfirmation(`Delete wiki page "${page.title}"?`, { danger: true });
@@ -551,6 +723,20 @@ function renderWikiSection(pageId) {
     }
   });
 }
+
+// Handle browser back/forward
+window.addEventListener('popstate', (e) => {
+  if (e.state && e.state.wiki !== undefined && activeSection === 'wiki') {
+    popstateActive = true;
+    const pageId = e.state.wiki;
+    // Find the index in our history
+    const idx = wikiHistory.lastIndexOf(pageId);
+    if (idx >= 0) wikiHistoryIndex = idx;
+    wikiViewStack = [];
+    renderWikiSection(pageId, true);
+    popstateActive = false;
+  }
+});
 
 function renderWikiAllPages() {
   const content = document.getElementById('comp-content');
@@ -604,12 +790,10 @@ function renderWikiAllPages() {
   document.getElementById('btn-new-wiki')?.addEventListener('click', () => openWikiEditor(null));
 }
 
-// openWikiPage removed — wiki pages now render inline in renderWikiSection(pageId)
-
 
 function openWikiEditor(existingPage) {
   const isEdit = !!existingPage;
-  let editorMode = 'write'; // write | preview
+  let editorMode = 'write';
 
   const bodyEl = document.createElement('div');
   bodyEl.className = 'md-editor-container';
@@ -656,21 +840,15 @@ function openWikiEditor(existingPage) {
       </div>
     `;
 
-    // Tab switching
     bodyEl.querySelectorAll('[data-mode]').forEach(tab => {
-      tab.addEventListener('click', () => {
-        editorMode = tab.dataset.mode;
-        render();
-      });
+      tab.addEventListener('click', () => { editorMode = tab.dataset.mode; render(); });
     });
 
-    // Toolbar actions
     bodyEl.querySelectorAll('[data-action]').forEach(btn => {
       btn.addEventListener('click', () => {
         const ta = bodyEl.querySelector('#we-content');
         if (!ta) return;
-        const start = ta.selectionStart;
-        const end = ta.selectionEnd;
+        const start = ta.selectionStart, end = ta.selectionEnd;
         const sel = ta.value.substring(start, end);
         let insert = '';
         switch (btn.dataset.action) {
@@ -689,14 +867,11 @@ function openWikiEditor(existingPage) {
       });
     });
 
-    // Save
     bodyEl.querySelector('#we-save')?.addEventListener('click', async () => {
       const titleVal = bodyEl.querySelector('#we-title').value.trim();
-      const contentVal = bodyEl.querySelector('#we-content')?.value || bodyEl.querySelector('#we-preview')?.dataset?.content || existingPage?.content || '';
+      const contentVal = bodyEl.querySelector('#we-content')?.value || existingPage?.content || '';
       const isDraftVal = bodyEl.querySelector('#we-draft')?.checked || false;
-
       if (!titleVal) { showNotification('Title is required.', 'danger'); return; }
-
       try {
         const data = {
           title: titleVal,
@@ -706,20 +881,16 @@ function openWikiEditor(existingPage) {
           slug: slugify(titleVal)
         };
         if (!isEdit) data.createdAt = new Date().toISOString();
-
         const savedId = await saveWikiPage(isEdit ? existingPage.id : null, data);
-
-        // Update local state
         if (isEdit) {
           const idx = wikiPages.findIndex(p => p.id === existingPage.id);
           if (idx >= 0) wikiPages[idx] = { ...wikiPages[idx], ...data };
         } else {
           wikiPages.push({ id: savedId, ...data, updatedAt: new Date() });
         }
-
         closeModal('wiki-editor');
         wikiViewStack = [];
-        renderWikiSection(savedId);
+        renderWikiSection(savedId || existingPage?.id);
         showNotification(isEdit ? 'Page saved.' : 'Page created.', 'success');
       } catch (err) {
         showNotification('Save failed.', 'danger');
@@ -727,7 +898,6 @@ function openWikiEditor(existingPage) {
       }
     });
 
-    // Cancel
     bodyEl.querySelector('#we-cancel')?.addEventListener('click', () => closeModal('wiki-editor'));
   };
 
@@ -777,15 +947,12 @@ function renderSessionsSection() {
 function openSessionLog(logId) {
   const log = sessionLogs.find(l => l.id === logId);
   if (!log) return;
-
   const rendered = renderMarkdown(log.content || '');
-
   const bodyEl = document.createElement('div');
   bodyEl.innerHTML = `
     <div style="margin-bottom: var(--space-4);">
       <div class="session-log-number" style="margin-bottom: var(--space-1);">Session ${log.sessionNumber || '?'}</div>
       <div style="font-size: var(--text-xs); color: var(--text-muted);">${formatDate(log.date || log.updatedAt)}</div>
-      ${log.isDraft ? '<span class="badge-draft" style="margin-top: var(--space-2); display: inline-flex;">Draft</span>' : ''}
     </div>
     <div class="wiki-page">${rendered}</div>
     ${isAdmin ? `
@@ -795,14 +962,8 @@ function openSessionLog(logId) {
       </div>
     ` : ''}
   `;
-
   openModal({ id: 'session-view', title: log.title || 'Session Log', body: bodyEl, size: 'lg' });
-
-  bodyEl.querySelector('#log-edit-btn')?.addEventListener('click', () => {
-    closeModal('session-view');
-    openSessionEditor(log);
-  });
-
+  bodyEl.querySelector('#log-edit-btn')?.addEventListener('click', () => { closeModal('session-view'); openSessionEditor(log); });
   bodyEl.querySelector('#log-delete-btn')?.addEventListener('click', async () => {
     const yes = await showConfirmation(`Delete session log "${log.title}"?`, { danger: true });
     if (!yes) return;
@@ -812,16 +973,13 @@ function openSessionLog(logId) {
       closeModal('session-view');
       renderSessionsSection();
       showNotification('Session log deleted.', 'success');
-    } catch (err) {
-      showNotification('Delete failed.', 'danger');
-    }
+    } catch (err) { showNotification('Delete failed.', 'danger'); }
   });
 }
 
 function openSessionEditor(existingLog) {
   const isEdit = !!existingLog;
   let editorMode = 'write';
-
   const bodyEl = document.createElement('div');
   bodyEl.className = 'md-editor-container';
 
@@ -849,7 +1007,7 @@ function openSessionEditor(existingLog) {
           </div>
         </div>
         <div>
-          <label style="font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-widest);">Summary (shown on card)</label>
+          <label style="font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-widest);">Summary</label>
           <input type="text" id="se-summary" value="${esc(summary)}" placeholder="Brief summary..." style="width:100%; margin-top: var(--space-1);">
         </div>
         <div class="md-editor-tabs">
@@ -857,24 +1015,13 @@ function openSessionEditor(existingLog) {
           <button class="md-editor-tab ${editorMode==='preview'?'active':''}" data-mode="preview">Preview</button>
         </div>
         ${editorMode === 'write' ? `
-          <div class="md-editor-toolbar">
-            <button data-action="bold" title="Bold">B</button>
-            <button data-action="italic" title="Italic"><em>I</em></button>
-            <button data-action="heading" title="Heading">H</button>
-            <button data-action="link" title="Link">🔗</button>
-            <span class="separator"></span>
-            <button data-action="list" title="List">• List</button>
-            <button data-action="image" title="Image">🖼</button>
-            <button data-action="hr" title="Divider">—</button>
-            <button data-action="quote" title="Quote">❝</button>
-          </div>
-          <textarea class="md-editor-textarea" id="se-content" placeholder="Write your session log using Markdown... Supports images with ![alt](url)">${esc(content)}</textarea>
+          <textarea class="md-editor-textarea" id="se-content" placeholder="Write your session log using Markdown...">${esc(content)}</textarea>
         ` : `
           <div class="md-editor-preview wiki-page">${renderMarkdown(content)}</div>
         `}
         <div class="md-editor-actions">
           <label style="font-size: var(--text-xs); color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2);">
-            <input type="checkbox" id="se-draft" ${existingLog?.isDraft ? 'checked' : ''}> Save as draft
+            <input type="checkbox" id="se-draft" ${existingLog?.isDraft ? 'checked' : ''}> Draft
           </label>
           <div style="display: flex; gap: var(--space-2);">
             <button class="btn-sm btn-ghost" id="se-cancel">Cancel</button>
@@ -884,39 +1031,10 @@ function openSessionEditor(existingLog) {
       </div>
     `;
 
-    // Tab switching
     bodyEl.querySelectorAll('[data-mode]').forEach(tab => {
-      tab.addEventListener('click', () => {
-        editorMode = tab.dataset.mode;
-        render();
-      });
+      tab.addEventListener('click', () => { editorMode = tab.dataset.mode; render(); });
     });
 
-    // Toolbar
-    bodyEl.querySelectorAll('[data-action]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const ta = bodyEl.querySelector('#se-content');
-        if (!ta) return;
-        const start = ta.selectionStart;
-        const end = ta.selectionEnd;
-        const sel = ta.value.substring(start, end);
-        let insert = '';
-        switch (btn.dataset.action) {
-          case 'bold': insert = `**${sel || 'bold'}**`; break;
-          case 'italic': insert = `*${sel || 'italic'}*`; break;
-          case 'heading': insert = `\n## ${sel || 'Heading'}\n`; break;
-          case 'link': insert = `[${sel || 'text'}](url)`; break;
-          case 'list': insert = `\n- ${sel || 'item'}\n`; break;
-          case 'image': insert = `![${sel || 'description'}](image-url)`; break;
-          case 'hr': insert = '\n---\n'; break;
-          case 'quote': insert = `\n> ${sel || 'quote'}\n`; break;
-        }
-        ta.value = ta.value.substring(0, start) + insert + ta.value.substring(end);
-        ta.focus();
-      });
-    });
-
-    // Save
     bodyEl.querySelector('#se-save')?.addEventListener('click', async () => {
       const titleVal = bodyEl.querySelector('#se-title').value.trim();
       const contentVal = bodyEl.querySelector('#se-content')?.value || existingLog?.content || '';
@@ -924,37 +1042,17 @@ function openSessionEditor(existingLog) {
       const summaryVal = bodyEl.querySelector('#se-summary').value.trim();
       const dateValSave = bodyEl.querySelector('#se-date').value;
       const isDraftVal = bodyEl.querySelector('#se-draft')?.checked || false;
-
       if (!titleVal) { showNotification('Title required.', 'danger'); return; }
-
       try {
-        const data = {
-          title: titleVal,
-          content: editorMode === 'preview' ? (existingLog?.content || contentVal) : contentVal,
-          sessionNumber: numVal,
-          summary: summaryVal,
-          date: dateValSave,
-          isDraft: isDraftVal,
-          format: 'markdown'
-        };
+        const data = { title: titleVal, content: editorMode === 'preview' ? (existingLog?.content || contentVal) : contentVal, sessionNumber: numVal, summary: summaryVal, date: dateValSave, isDraft: isDraftVal, format: 'markdown' };
         if (!isEdit) data.createdAt = new Date().toISOString();
-
         const savedId = await saveSessionLog(isEdit ? existingLog.id : null, data);
-
-        if (isEdit) {
-          const idx = sessionLogs.findIndex(l => l.id === existingLog.id);
-          if (idx >= 0) sessionLogs[idx] = { ...sessionLogs[idx], ...data };
-        } else {
-          sessionLogs.push({ id: savedId, ...data, updatedAt: new Date() });
-        }
-
+        if (isEdit) { const idx = sessionLogs.findIndex(l => l.id === existingLog.id); if (idx >= 0) sessionLogs[idx] = { ...sessionLogs[idx], ...data }; }
+        else { sessionLogs.push({ id: savedId, ...data, updatedAt: new Date() }); }
         closeModal('session-editor');
         renderSessionsSection();
         showNotification(isEdit ? 'Session saved.' : 'Session created.', 'success');
-      } catch (err) {
-        showNotification('Save failed.', 'danger');
-        console.error(err);
-      }
+      } catch (err) { showNotification('Save failed.', 'danger'); console.error(err); }
     });
 
     bodyEl.querySelector('#se-cancel')?.addEventListener('click', () => closeModal('session-editor'));
@@ -965,76 +1063,46 @@ function openSessionEditor(existingLog) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// MARKDOWN RENDERER (simple, for new content)
+// MARKDOWN RENDERER
 // ══════════════════════════════════════════════════════════════════
 function renderMarkdown(md) {
   if (!md) return '<p style="color: var(--text-muted);">No content.</p>';
-
   let html = md;
-
-  // Escape HTML (except allowed tags for images)
   html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  // Restore image tags: ![alt](url)
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%; height:auto; border: 1px solid var(--border-color); margin: var(--space-3) 0;">');
-
-  // Headers
   html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
   html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
   html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
   html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-
-  // Horizontal rule
   html = html.replace(/^---+$/gm, '<hr style="border: none; border-top: 1px solid var(--border-color); margin: var(--space-4) 0;">');
-
-  // Blockquote
   html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote>$1</blockquote>');
-
-  // Bold
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-  // Italic
   html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-  // Links [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-
-  // Wiki links [[Page]]
   html = html.replace(/\[\[([^\]]+)\]\]/g, (_, page) => {
     const target = wikiPages.find(p =>
-      slugify(p.title || '') === slugify(page) ||
-      (p.title || '').toLowerCase() === page.toLowerCase()
+      slugify(p.title || '') === slugify(page) || (p.title || '').toLowerCase() === page.toLowerCase()
     );
-    if (target) {
-      return `<span class="wiki-link" data-wiki-slug="${esc(target.id)}">${esc(page)}</span>`;
-    }
+    if (target) return `<span class="wiki-link" data-wiki-nav="${esc(target.id)}">${esc(page)}</span>`;
     return `<span style="color: var(--text-muted);">${esc(page)}</span>`;
   });
-
-  // Unordered lists
   html = html.replace(/((?:^- .+\n?)+)/gm, (block) => {
     const items = block.trim().split('\n').map(l => l.replace(/^- /, ''));
     return '<ul>' + items.map(i => `<li>${i}</li>`).join('') + '</ul>';
   });
-
-  // Ordered lists
   html = html.replace(/((?:^\d+\. .+\n?)+)/gm, (block) => {
     const items = block.trim().split('\n').map(l => l.replace(/^\d+\. /, ''));
     return '<ol>' + items.map(i => `<li>${i}</li>`).join('') + '</ol>';
   });
-
-  // Paragraphs — wrap remaining lines
   html = html.split('\n').map(line => {
     const t = line.trim();
     if (!t) return '';
     if (/^<(h[1-6]|ul|ol|li|blockquote|hr|img|table|div|pre)/.test(t)) return line;
     return `<p>${t}</p>`;
   }).join('\n');
-
   html = html.replace(/<p><\/p>/g, '');
-
   return html;
 }
 

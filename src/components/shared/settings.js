@@ -12,13 +12,16 @@ import { PRESET_THEMES, LAYOUT_PRESETS, applyTheme, applyLayout, getCurrentTheme
  * @param {function} onSave — called with updated char fields to persist
  */
 export function openSettingsModal(char, onSave) {
-  const currentThemeId = char.appliedTheme || 'dark-red';
+  // Use mutable tracking — NOT const — so render() always sees latest state
   const customThemes = char.customThemes || [];
-  const currentLayoutId = char.layoutPreset || 'default';
 
   const bodyEl = document.createElement('div');
 
   function render() {
+    // Read current values from char each time (not stale consts)
+    const activeThemeId = char.appliedTheme || 'dark-red';
+    const activeLayoutId = char.layoutPreset || 'default';
+
     bodyEl.innerHTML = `
       <!-- THEME SECTION -->
       <div class="settings-section">
@@ -86,7 +89,10 @@ export function openSettingsModal(char, onSave) {
 
     themeGrid.innerHTML = allThemes.map(t => {
       const colors = t.preview || [t.vars?.['--bg-primary'] || '#111', t.vars?.['--accent'] || '#fff'];
-      const isActive = (t.id === currentThemeId) || (t.isCustom && char.appliedTheme === `custom-${t.customIndex}`);
+      // FIX: compare against mutable char.appliedTheme (read as activeThemeId above)
+      const isActive = t.isCustom
+        ? activeThemeId === `custom-${t.customIndex}`
+        : t.id === activeThemeId;
       return `
         <div class="theme-swatch ${isActive ? 'active' : ''}" data-theme-id="${t.isCustom ? 'custom-' + t.customIndex : t.id}">
           <div class="theme-swatch-colors">
@@ -101,7 +107,7 @@ export function openSettingsModal(char, onSave) {
     // Theme swatch clicks
     themeGrid.querySelectorAll('.theme-swatch').forEach(swatch => {
       swatch.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-btn')) return;
+        if (e.target.closest('.delete-btn')) return; // FIX: use closest() not classList check on e.target
         const tid = swatch.dataset.themeId;
 
         if (tid.startsWith('custom-')) {
@@ -124,7 +130,7 @@ export function openSettingsModal(char, onSave) {
           customThemes
         });
 
-        render(); // re-render to update active state
+        render(); // re-render to update active state (now reads from char directly)
       });
     });
 
@@ -138,7 +144,13 @@ export function openSettingsModal(char, onSave) {
         if (!yes) return;
         customThemes.splice(idx, 1);
         char.customThemes = customThemes;
-        onSave({ customThemes });
+        // If we deleted the active theme, revert to default
+        if (char.appliedTheme === `custom-${idx}`) {
+          char.appliedTheme = 'dark-red';
+          char.appliedThemeVars = null;
+          applyTheme('dark-red');
+        }
+        onSave({ customThemes, appliedTheme: char.appliedTheme, appliedThemeVars: char.appliedThemeVars });
         showNotification('Theme deleted.', 'success');
         render();
       });
@@ -153,7 +165,6 @@ export function openSettingsModal(char, onSave) {
 
     // Save custom theme
     bodyEl.querySelector('#btn-save-custom-theme')?.addEventListener('click', () => {
-      // Use custom input modal instead of browser prompt
       const inputBody = document.createElement('div');
       inputBody.innerHTML = `
         <div style="display: flex; flex-direction: column; gap: var(--space-3);">
@@ -195,19 +206,17 @@ export function openSettingsModal(char, onSave) {
 
       inputBody.querySelector('#ctn-save')?.addEventListener('click', doSave);
       inputBody.querySelector('#ctn-cancel')?.addEventListener('click', () => closeModal('custom-theme-name'));
-      // Allow Enter key
       inputBody.querySelector('#custom-theme-name-input')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') doSave();
       });
-      // Focus the input
       setTimeout(() => inputBody.querySelector('#custom-theme-name-input')?.focus(), 100);
     });
 
     // ── Render Layout Presets ──
     const layoutGrid = bodyEl.querySelector('#layout-grid');
     layoutGrid.innerHTML = LAYOUT_PRESETS.map(lp => {
-      const isActive = currentLayoutId === lp.id || char.layoutPreset === lp.id;
-      // Build mini-preview
+      // FIX: uses activeLayoutId read from char at top of render()
+      const isActive = activeLayoutId === lp.id;
       let miniBlocks = '';
       for (const [wid, pos] of Object.entries(lp.grid)) {
         miniBlocks += `<div class="layout-mini-block" style="grid-column: ${pos.col} / span ${pos.span}; grid-row: ${pos.row};"></div>`;
@@ -227,7 +236,7 @@ export function openSettingsModal(char, onSave) {
         if (!preset) return;
 
         applyLayout(preset.grid);
-        char.layoutPreset = lid;
+        char.layoutPreset = lid; // mutate char so render() picks it up
 
         onSave({ layoutPreset: lid });
         showNotification(`Layout: ${preset.name}`, 'success');
@@ -237,13 +246,12 @@ export function openSettingsModal(char, onSave) {
   }
 
   function getCustomVarsFromForm() {
-    const vars = getCurrentThemeVars(); // start from current
+    const vars = getCurrentThemeVars();
     bodyEl.querySelectorAll('#custom-color-grid input[type="color"]').forEach(input => {
       vars[input.dataset.var] = input.value;
-      // Auto-derive related vars
       if (input.dataset.var === '--accent') {
         vars['--accent-hover'] = lighten(input.value, 20);
-        vars['--accent-muted'] = input.value + '14'; // ~8% alpha
+        vars['--accent-muted'] = input.value + '14';
         vars['--accent-strong'] = darken(input.value, 15);
       }
       if (input.dataset.var === '--bg-primary') {
@@ -268,13 +276,11 @@ function rgbToHex(color) {
   if (!color) return '#000000';
   color = color.trim();
   if (color.startsWith('#')) {
-    // Ensure 6-digit hex
     if (color.length === 4) {
       return '#' + color[1]+color[1] + color[2]+color[2] + color[3]+color[3];
     }
-    return color.substring(0, 7); // strip alpha if present
+    return color.substring(0, 7);
   }
-  // Handle rgb() or rgba()
   const match = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
   if (match) {
     return '#' + [match[1], match[2], match[3]].map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
