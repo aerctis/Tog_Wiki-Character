@@ -23,6 +23,7 @@ import { calculateBeastStats, getBeastAbilities } from '../../systems/beast-syst
 import { calculateBaseStats, calculateTotalStats, calculateStatCap, calculateAvailableStatPoints } from '../../systems/stat-calculator.js';
 import { aggregateSkillBonuses, calculateUsedSkillPoints, calculateAvailableSkillPoints, calculateSpirit } from '../../systems/skill-engine.js';
 import { calculateMaxHP, calculateSpeed, calculateAttack, calculateDefense } from '../../systems/combat-math.js';
+import { fetchPlayerDiscovery, setDiscoveryLevel, setDiscoveryLevelForAll } from '../../services/discovery.service.js';
 
 let libs = { skills: [], items: [], beasts: [], synergies: [] };
 let partyUids = [];
@@ -286,7 +287,7 @@ function openManageItemsModal(uid, pc) {
       <h4 style="margin-bottom: var(--space-3); color: var(--text-secondary);">Owned Items</h4>
       <div class="modal-grid" style="margin-bottom: var(--space-4);">
         ${owned.length === 0 ? '<p style="color: var(--text-muted);">None</p>' :
-          owned.map(item => `<div class="card">
+        owned.map(item => `<div class="card">
             <img src="${item.image || ''}" alt="${item.name}"><div class="card-title">${item.name}</div>
             <button class="btn-sm" data-remove-item="${item.id}" style="margin-top: var(--space-2); width: 100%;">Remove</button>
           </div>`).join('')}
@@ -345,7 +346,7 @@ function openManageBeastsModal(uid, pc) {
       <h4 style="margin-bottom: var(--space-3); color: var(--text-secondary);">Tamed Beasts (BP: ${pc.beastPoints || 0})</h4>
       <div class="modal-grid" style="margin-bottom: var(--space-4);">
         ${owned.length === 0 ? '<p style="color: var(--text-muted);">None</p>' :
-          owned.map(beast => `<div class="card">
+        owned.map(beast => `<div class="card">
             <img src="${beast.image || ''}" alt="${beast.name}"><div class="card-title">${beast.name}</div>
             <div class="card-subtitle">Lv. ${beast.playerData.level}</div>
             <div style="display: flex; gap: var(--space-1); margin-top: var(--space-2);">
@@ -453,7 +454,7 @@ function openManageProfsModal(uid, pc) {
       <h4 style="margin-bottom: var(--space-3); color: var(--text-secondary);">Current Proficiencies</h4>
       <div class="tag-list" style="margin-bottom: var(--space-4);">
         ${current.length === 0 ? '<span style="color: var(--text-muted);">None</span>' :
-          current.map(c => `<span class="tag">${c}<span class="tag-remove" data-remove-prof="${c}">×</span></span>`).join('')}
+        current.map(c => `<span class="tag">${c}<span class="tag-remove" data-remove-prof="${c}">×</span></span>`).join('')}
       </div>
       <h4 style="margin-bottom: var(--space-3); color: var(--text-secondary);">Add Proficiency</h4>
       <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
@@ -584,10 +585,10 @@ function openViewSheetModal(uid, pc) {
     const val = totalStats[s] || 0;
     const manual = pc.manualStatPoints?.[s] || 0;
     const locked = pc.lockedStatPoints?.[s] || 0;
-    return `<tr><td>${s}</td><td style="text-align:right; font-weight:600;">${val.toFixed(1)}</td><td style="text-align:right; color: var(--text-muted);">${manual} (${locked}🔒)</td></tr>`;
+    return `<tr><td>${s}</td><td style="text-align:right; font-weight:600;">${val.toFixed(1)}</td><td style="text-align:right; color: var(--text-muted);">${manual}${locked > 0 ? ` <span style="color: var(--accent); font-size: 0.65rem;">${locked} locked</span>` : ''}</td></tr>`;
   }).join('');
 
-  const equippedItems = Object.entries(pc.equipment || {}).filter(([_, v]) => v).map(([slot, item]) => 
+  const equippedItems = Object.entries(pc.equipment || {}).filter(([_, v]) => v).map(([slot, item]) =>
     `<span class="tag">${EQUIPMENT_SLOTS[slot]?.label || slot}: ${item.name}</span>`
   ).join('') || '<span style="color: var(--text-muted);">None</span>';
 
@@ -671,9 +672,8 @@ function renderContentTab() {
         <div class="card" data-edit-content="${entry.id}" style="position: relative;">
           <img src="${entry.image || entry.icon || ''}" alt="${entry.name}">
           <div class="card-title">${entry.name || 'Untitled'}</div>
-          <div class="card-subtitle">${entry.isDiscovered !== false ? '◉ Visible' : '◯ Hidden'}</div>
           <div class="card-actions">
-            <button class="btn-sm" data-toggle-disc="${entry.id}" title="Toggle discovery">${entry.isDiscovered !== false ? '◯' : '◉'}</button>
+            <button class="btn-sm" data-disc-detail="${entry.id}" title="Discovery settings" style="font-size: 0.55rem; padding: 2px 6px;">Discovery</button>
           </div>
         </div>
       `).join('') || '<p style="color: var(--text-muted);">No entries.</p>';
@@ -681,17 +681,13 @@ function renderContentTab() {
       grid.querySelectorAll('[data-edit-content]').forEach(card => {
         card.addEventListener('click', () => openContentEditor(contentType, card.dataset.editContent));
       });
-      grid.querySelectorAll('[data-toggle-disc]').forEach(btn => {
+      grid.querySelectorAll('[data-disc-detail]').forEach(btn => {
         btn.addEventListener('click', async e => {
           e.stopPropagation();
-          const id = btn.dataset.toggleDisc;
+          const id = btn.dataset.discDetail;
           const entry = lib.find(e => e.id === id);
           if (!entry) return;
-          const newState = entry.isDiscovered === false;
-          await toggleDiscovery(contentType, id, newState);
-          entry.isDiscovered = newState;
-          showNotification(newState ? 'Discovered!' : 'Hidden', 'success');
-          renderGrid(document.getElementById('content-search')?.value?.toLowerCase() || '');
+          openDiscoveryModal(contentType, id, entry.name || 'Untitled');
         });
       });
     };
@@ -699,6 +695,128 @@ function renderContentTab() {
     document.getElementById('content-search')?.addEventListener('input', e => renderGrid(e.target.value.toLowerCase()));
   };
   render();
+}
+
+async function openDiscoveryModal(category, entryId, entryName) {
+  // Load current discovery state for each party member
+  const playerStates = [];
+  for (const pc of partyChars) {
+    try {
+      const disc = await fetchPlayerDiscovery(pc.uid);
+      const level = disc[category]?.[entryId] || 'undiscovered';
+      playerStates.push({ uid: pc.uid, name: pc.name || 'Unnamed', level });
+    } catch {
+      playerStates.push({ uid: pc.uid, name: pc.name || 'Unnamed', level: 'undiscovered' });
+    }
+  }
+
+  const levels = ['undiscovered', 'seen', 'learnable', 'learned'];
+  const levelLabels = { undiscovered: '✖ Undiscovered', seen: '👁 Seen', learnable: '🕮 Learnable', learned: '✓ Learned' };
+
+  const renderBody = () => {
+    const rows = playerStates.map(ps => `
+      <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle);">
+        <span style="flex: 1; font-weight: 500; color: var(--text-bright);">${esc(ps.name)}</span>
+        <select class="disc-player-select" data-uid="${ps.uid}" style="font-size: var(--text-xs); padding: 2px 6px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-secondary);">
+          ${levels.map(l => `<option value="${l}" ${ps.level === l ? 'selected' : ''}>${levelLabels[l]}</option>`).join('')}
+        </select>
+        <button class="btn-sm" data-save-player="${ps.uid}" style="font-size: 0.55rem; padding: 2px 6px;">Set</button>
+      </div>
+    `).join('');
+
+    return `
+      <div style="margin-bottom: var(--space-4);">
+        <div style="font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-widest); margin-bottom: var(--space-2);">Set for all players</div>
+        <div style="display: flex; gap: var(--space-2); align-items: center;">
+          <select id="disc-all-select" style="font-size: var(--text-xs); padding: 2px 8px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-secondary); flex: 1;">
+            ${levels.map(l => `<option value="${l}">${levelLabels[l]}</option>`).join('')}
+          </select>
+          <button class="btn-sm btn-accent" id="disc-set-all" style="font-size: 0.55rem; padding: 2px 8px;">Set All</button>
+        </div>
+      </div>
+      <div style="font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-widest); margin-bottom: var(--space-2);">Per player</div>
+      ${rows}
+    `;
+  };
+
+  const bodyEl = document.createElement('div');
+  bodyEl.innerHTML = renderBody();
+
+  openModal({ id: 'disc-detail', title: `Discovery — ${entryName}`, body: bodyEl, size: 'sm' });
+
+  // Per-player set
+  bodyEl.querySelectorAll('[data-save-player]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const uid = btn.dataset.savePlayer;
+      const select = bodyEl.querySelector(`.disc-player-select[data-uid="${uid}"]`);
+      if (!select) return;
+      const level = select.value;
+      try {
+        await setDiscoveryLevel(uid, category, entryId, level);
+        const ps = playerStates.find(p => p.uid === uid);
+        if (ps) ps.level = level;
+        showNotification(`Set to ${level}`, 'success');
+      } catch (err) {
+        showNotification('Failed: ' + err.message, 'danger');
+      }
+    });
+  });
+
+  // Set all
+  document.getElementById('disc-set-all')?.addEventListener('click', async () => {
+    const select = document.getElementById('disc-all-select');
+    if (!select) return;
+    const level = select.value;
+    const allUids = partyChars.map(p => p.uid);
+    if (await showConfirmation(`Set "${level}" for ALL ${allUids.length} players?`)) {
+      try {
+        await setDiscoveryLevelForAll(allUids, category, entryId, level);
+        playerStates.forEach(ps => ps.level = level);
+        bodyEl.innerHTML = renderBody();
+        // Re-attach handlers after re-render
+        attachDiscHandlers();
+        showNotification(`Set to ${level} for all`, 'success');
+      } catch (err) {
+        showNotification('Failed: ' + err.message, 'danger');
+      }
+    }
+  });
+
+  function attachDiscHandlers() {
+    bodyEl.querySelectorAll('[data-save-player]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const uid = btn.dataset.savePlayer;
+        const select = bodyEl.querySelector(`.disc-player-select[data-uid="${uid}"]`);
+        if (!select) return;
+        const level = select.value;
+        try {
+          await setDiscoveryLevel(uid, category, entryId, level);
+          const ps = playerStates.find(p => p.uid === uid);
+          if (ps) ps.level = level;
+          showNotification(`Set to ${level}`, 'success');
+        } catch (err) {
+          showNotification('Failed: ' + err.message, 'danger');
+        }
+      });
+    });
+    document.getElementById('disc-set-all')?.addEventListener('click', async () => {
+      const select = document.getElementById('disc-all-select');
+      if (!select) return;
+      const level = select.value;
+      const allUids = partyChars.map(p => p.uid);
+      if (await showConfirmation(`Set "${level}" for ALL ${allUids.length} players?`)) {
+        try {
+          await setDiscoveryLevelForAll(allUids, category, entryId, level);
+          playerStates.forEach(ps => ps.level = level);
+          bodyEl.innerHTML = renderBody();
+          attachDiscHandlers();
+          showNotification(`Set to ${level} for all`, 'success');
+        } catch (err) {
+          showNotification('Failed: ' + err.message, 'danger');
+        }
+      }
+    });
+  }
 }
 
 function openContentEditor(type, id) {
@@ -723,7 +841,7 @@ function openContentEditor(type, id) {
         <div class="field-group"><label>Spirit Cost</label><input type="number" id="ce-spiritCost" value="${s.spiritCost || 0}"></div>
         <div class="field-group"><label>Charges</label><input type="number" id="ce-charges" value="${s.charges || 0}"></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%; min-height: 80px;">${esc(s.description || '')}</textarea></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Cost per Level (JSON array)</label><input type="text" id="ce-costPerLevel" value="${JSON.stringify(s.costPerLevel || [1,2,3,4,5])}"></div>
+        <div class="field-group" style="grid-column: 1/-1;"><label>Cost per Level (JSON array)</label><input type="text" id="ce-costPerLevel" value="${JSON.stringify(s.costPerLevel || [1, 2, 3, 4, 5])}"></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Effects (JSON array)</label><textarea id="ce-effects" style="width:100%; min-height:100px; font-family: var(--font-mono); font-size: var(--text-xs);">${JSON.stringify(s.effects || [], null, 2)}</textarea></div>
       </div>
       <div class="field-group"><label><input type="checkbox" id="ce-discovered" ${s.isDiscovered !== false ? 'checked' : ''}> Discovered</label></div>
@@ -771,8 +889,8 @@ function openContentEditor(type, id) {
         </div>
         <div class="field-group"><label>Tier (1-5)</label><input type="number" id="ce-tier" min="1" max="5" value="${s.tier || 1}"></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%; min-height:80px;">${esc(s.description || '')}</textarea></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Base Stats (JSON: {hp, attack, defense, speed})</label><input type="text" id="ce-baseStats" value='${JSON.stringify(s.baseStats || {hp:10,attack:5,defense:5,speed:5})}'></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Growth Rates (JSON: {hp, attack, defense, speed})</label><input type="text" id="ce-growthRates" value='${JSON.stringify(s.growthRates || {hp:2,attack:1,defense:1,speed:1})}'></div>
+        <div class="field-group" style="grid-column: 1/-1;"><label>Base Stats (JSON: {hp, attack, defense, speed})</label><input type="text" id="ce-baseStats" value='${JSON.stringify(s.baseStats || { hp: 10, attack: 5, defense: 5, speed: 5 })}'></div>
+        <div class="field-group" style="grid-column: 1/-1;"><label>Growth Rates (JSON: {hp, attack, defense, speed})</label><input type="text" id="ce-growthRates" value='${JSON.stringify(s.growthRates || { hp: 2, attack: 1, defense: 1, speed: 1 })}'></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Abilities (JSON array)</label><textarea id="ce-beastAbilities" style="width:100%; min-height:100px; font-family: var(--font-mono); font-size: var(--text-xs);">${JSON.stringify(s.abilities || [], null, 2)}</textarea></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Synergy Tags (comma-sep)</label><input type="text" id="ce-synergyTags" value="${(s.synergyTags || []).join(', ')}"></div>
       </div>
@@ -895,16 +1013,16 @@ function renderShopTab() {
       <h4 style="color: var(--text-secondary); margin-bottom: var(--space-3);">Current Shop Items</h4>
       <div id="shop-items-list">
         ${shopItems.length === 0 ? '<p style="color: var(--text-muted);">No items in shop.</p>' :
-          shopItems.map((si, i) => {
-            const item = libs.items.find(x => x.id === si.id);
-            return `<div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-2) var(--space-3); background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: var(--space-2);">
+      shopItems.map((si, i) => {
+        const item = libs.items.find(x => x.id === si.id);
+        return `<div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-2) var(--space-3); background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: var(--space-2);">
               <span><strong>${item?.name || si.id}</strong> — ${si.price}P${si.stock !== undefined ? ` (Stock: ${si.stock})` : ' (∞)'}</span>
               <div style="display: flex; gap: var(--space-2);">
                 <button class="btn-sm" data-edit-shop="${i}">Edit</button>
                 <button class="btn-sm" data-remove-shop="${i}">×</button>
               </div>
             </div>`;
-          }).join('')}
+      }).join('')}
       </div>
     </div>
     <h4 style="color: var(--text-secondary); margin-bottom: var(--space-3);">Add to Shop</h4>
@@ -1029,14 +1147,14 @@ function renderPartyTab() {
     <h3 style="color: var(--text-primary); margin-bottom: var(--space-4);">Party Members</h3>
     <div style="margin-bottom: var(--space-4);">
       ${partyUids.length === 0 ? '<p style="color: var(--text-muted);">No members selected.</p>' :
-        partyUids.map(uid => {
-          const user = allUsers.find(u => u.uid === uid);
-          const pc = partyChars.find(c => c.uid === uid);
-          return `<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) var(--space-3); background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: var(--space-2);">
+      partyUids.map(uid => {
+        const user = allUsers.find(u => u.uid === uid);
+        const pc = partyChars.find(c => c.uid === uid);
+        return `<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) var(--space-3); background: var(--bg-tertiary); border-radius: var(--radius-md); margin-bottom: var(--space-2);">
             <span><strong>${user?.displayName || uid}</strong>${pc ? ` — ${pc.name || 'No character'}` : ''}</span>
             <button class="btn-sm" data-remove-member="${uid}">Remove</button>
           </div>`;
-        }).join('')}
+      }).join('')}
     </div>
     <h4 style="color: var(--text-secondary); margin-bottom: var(--space-3);">Add Members</h4>
     ${nonParty.length === 0 ? '<p style="color: var(--text-muted);">No other users registered.</p>' :

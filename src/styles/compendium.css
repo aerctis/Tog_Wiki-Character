@@ -204,16 +204,75 @@
   border-color: rgba(255,255,255,0.2);
 }
 
+/* ── Discovery Level States ── */
+/* Learned — full color, highlighted border, clickable */
+.comp-card.disc-learned {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(255,255,255,0.06), inset 0 0 0 1px var(--accent-muted);
+}
+.comp-card.disc-learned .comp-card-img {
+  border-color: var(--accent);
+}
+
+/* Learnable — full color, normal border, clickable */
+.comp-card.disc-learnable {
+  /* default card styling — no changes needed */
+}
+
+/* Seen — grayscale image, no title/info, not clickable */
+.comp-card.disc-seen {
+  cursor: default;
+  opacity: 0.65;
+}
+.comp-card.disc-seen:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-color);
+  background: var(--bg-widget);
+}
+.comp-card.disc-seen .comp-card-img {
+  filter: grayscale(1) brightness(0.7);
+}
+
+/* Undiscovered — question mark, dim, not clickable */
+.comp-card.disc-undiscovered {
+  opacity: 0.35;
+  cursor: default;
+}
+.comp-card.disc-undiscovered:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--border-color);
+  background: var(--bg-widget);
+}
+.comp-card.disc-undiscovered .comp-card-img {
+  filter: grayscale(1) brightness(0.4);
+}
+
+/* Legacy support */
 .comp-card.undiscovered {
   opacity: 0.4;
   cursor: default;
 }
-
 .comp-card.undiscovered:hover {
   transform: none;
   box-shadow: none;
   border-color: var(--border-color);
   background: var(--bg-widget);
+}
+
+/* Admin discovery badge on cards */
+.comp-card-disc-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 4px;
+  background: rgba(0,0,0,0.6);
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .comp-card-img {

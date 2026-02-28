@@ -109,6 +109,8 @@ export function getDefaultCharacterData(uid) {
     currentHP: 0,
     statMultiplier: 2.0,
     manualStatPoints: Object.fromEntries(STATS.map(s => [s, 0])),
+    lockedStatPoints: {},          // FIX: was missing
+    deallocationPoints: 0,         // FIX: was missing
     bonusStatPoints: 0,
     affinities: { primary: [], secondary: [], tertiary: [] },
     equipment: {
@@ -153,6 +155,8 @@ export function buildSavePayload(charData) {
     currentHP: charData.currentHP,
     statMultiplier: charData.statMultiplier,
     manualStatPoints: charData.manualStatPoints,
+    lockedStatPoints: charData.lockedStatPoints || {},       // FIX: was missing — this is why locks didn't persist
+    deallocationPoints: charData.deallocationPoints || 0,    // FIX: was missing
     bonusStatPoints: charData.bonusStatPoints || 0,
     affinities: charData.affinities,
     equipment: charData.equipment,

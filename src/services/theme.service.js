@@ -229,7 +229,10 @@ export const LAYOUT_PRESETS = [
 
 // ─── Apply Theme ──────────────────────────────────────────────────
 export function applyTheme(themeId, customVars) {
-  const root = document.documentElement;
+  // IMPORTANT: We must set vars on document.body (not documentElement/:root)
+  // because variables.css declares defaults on `body, body[data-theme="dark-red"]`
+  // which has higher specificity than inline styles on :root.
+  const target = document.body;
   const preset = PRESET_THEMES.find(t => t.id === themeId);
 
   // If it's a preset with vars, apply them
@@ -238,15 +241,15 @@ export function applyTheme(themeId, customVars) {
   // Reset to defaults first (remove inline overrides)
   const allVarNames = new Set();
   PRESET_THEMES.forEach(t => Object.keys(t.vars).forEach(k => allVarNames.add(k)));
-  allVarNames.forEach(k => root.style.removeProperty(k));
+  allVarNames.forEach(k => target.style.removeProperty(k));
 
   // Apply new vars
   for (const [key, val] of Object.entries(vars)) {
-    root.style.setProperty(key, val);
+    target.style.setProperty(key, val);
   }
 
   // Set data-theme for any CSS that keys off it
-  document.body.dataset.theme = themeId || 'custom';
+  target.dataset.theme = themeId || 'custom';
 }
 
 // ─── Apply Layout ─────────────────────────────────────────────────

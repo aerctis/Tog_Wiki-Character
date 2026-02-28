@@ -9,10 +9,15 @@ service cloud.firestore {
     }
 
     // Characters: owner can read/write, admin can read/write all
+    // FIX: Also allow write if charId matches auth.uid (handles docs
+    // created by old_version.html that don't have a uid field in data)
     match /characters/{charId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null &&
-        (resource == null || resource.data.uid == request.auth.uid || isAdmin());
+        (charId == request.auth.uid ||
+         resource == null ||
+         resource.data.uid == request.auth.uid ||
+         isAdmin());
       allow create: if request.auth != null;
     }
 
@@ -55,6 +60,12 @@ service cloud.firestore {
     match /session_logs/{doc} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
+    }
+
+    // Player discovery state — each player can read/write their own
+    match /player_discovery/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isAdmin();
     }
 
     function isAdmin() {

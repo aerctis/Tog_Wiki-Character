@@ -1,0 +1,97 @@
+/* fixes.css — Targeted CSS fixes
+   Import this AFTER widgets.css in your HTML:
+   <link rel="stylesheet" href="/src/styles/fixes.css">
+   Add to sheet.html AND compendium.html */
+
+/* ─── FIX: Missing btn-xs class (used by discovery controls) ─── */
+.btn-xs {
+  padding: 2px 6px;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* ─── FIX: Spirit tooltip clipped by overflow:hidden ─── 
+   The spirit-tank has overflow:hidden which clips the tooltip
+   positioned at left:120%. Change to overflow:visible but clip
+   the fluid with a nested wrapper instead. */
+.spirit-tank {
+  overflow: visible !important;
+}
+
+/* Keep the fluid from overflowing the tank visually */
+.spirit-tank-fluid {
+  overflow: hidden;
+}
+
+/* Enhanced spirit tooltip styling */
+.spirit-tooltip {
+  text-align: center;
+  line-height: 1.2;
+  padding: var(--space-2) var(--space-3) !important;
+}
+
+/* ─── FIX: Text caret appearing on non-editable elements ───
+   Some browsers show a text cursor on elements that have
+   user-select or contenteditable states leaking. This forces
+   the default cursor on all non-interactive elements. */
+.widget,
+.widget *:not(input):not(textarea):not(select):not(button):not([contenteditable="true"]):not(a) {
+  cursor: default;
+}
+
+/* Restore pointer cursor for interactive elements */
+.widget button,
+.widget a,
+.widget [data-stat-add],
+.widget [data-stat-remove],
+.widget [data-stat-dealloc],
+.widget .skill-slot,
+.widget .charge-box,
+.widget select,
+.widget .tag-remove {
+  cursor: pointer;
+}
+
+/* Restore text cursor for actual input fields */
+.widget input[type="text"],
+.widget input[type="number"],
+.widget textarea {
+  cursor: text;
+}
+
+/* Prevent text selection on non-editable widget content */
+.widget h3,
+.widget h4,
+.widget label,
+.widget .stat-label,
+.widget .stat-value,
+.widget .currency-label,
+.widget .currency-value,
+.widget .stat-value-cell,
+.widget .stat-breakdown,
+.widget .tier-header,
+.widget .comp-card-name,
+.widget .comp-card-meta {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Also fix caret on the compendium page */
+.compendium-layout,
+.compendium-sidebar,
+.sidebar-link,
+.comp-card,
+.section-header,
+.detail-panel {
+  cursor: default;
+}
+
+.compendium-sidebar a,
+.comp-card[data-item-id],
+.comp-card[data-skill-id],
+.comp-card[data-beast-id],
+.wiki-link,
+.wiki-page-item {
+  cursor: pointer;
+}

@@ -27,6 +27,7 @@ let shopSettings = { isShopOpen: false, shopItems: [] };
 let partyMembers = []; // For trading
 let unsubCharListener = null;
 let unsubShopListener = null;
+let isAdminUser = false;
 
 // ─── Init ─────────────────────────────────────────────────────────
 async function init() {
@@ -40,6 +41,7 @@ async function init() {
   document.getElementById('btn-sign-out').addEventListener('click', handleSignOut);
 
   const isAdmin = await isCurrentUserAdmin();
+  isAdminUser = isAdmin;
   if (isAdmin) {
     const adminNav = document.getElementById('nav-admin');
     if (adminNav) adminNav.style.display = '';
@@ -337,7 +339,18 @@ function renderResources() {
 }
 
 function lockStats() {
-  // Lock all currently unlocked stat points permanently
+  // Check: any stat exceeding the multiplier cap?
+  const cap = computed.statCap;
+  const overCap = STATS.filter(s => (computed.totalStats[s] || 0) > Math.floor(cap));
+  if (overCap.length > 0) {
+    showNotification(`Cannot lock: ${overCap.join(', ')} exceed${overCap.length === 1 ? 's' : ''} the ${char.statMultiplier || 2.0}× cap (${Math.floor(cap)}). Reduce them first.`, 'danger');
+    return;
+  }
+  // Check: no negative available (over-allocated)
+  if (computed.availableStatPoints < 0) {
+    showNotification('Cannot lock: you have over-allocated stat points. Remove some first.', 'danger');
+    return;
+  }
   const unlocked = computed.unlocked;
   const totalUnlocked = Object.values(unlocked).reduce((s, v) => s + v, 0);
   if (totalUnlocked === 0) return;
@@ -529,7 +542,12 @@ function renderSkills() {
     <div class="skills-wrapper">
       <div class="spirit-tank">
         <div class="spirit-tank-fluid" style="height: ${spiritPct}%;"></div>
-        <div class="spirit-tooltip">${computed.spirit.current} / ${computed.spirit.max}</div>
+        <div class="spirit-tooltip">
+          <span style="color: var(--text-bright); font-weight: 700; font-size: 0.85rem;">${computed.spirit.current}</span>
+          <span style="color: var(--text-muted); margin: 0 2px;">/</span>
+          <span style="color: var(--text-secondary); font-size: 0.85rem;">${computed.spirit.max}</span>
+          <div style="font-size: 0.45rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-top: 2px;">Spirit</div>
+        </div>
       </div>
       <div>${tiersHtml || '<p style="color: var(--text-muted); font-size: var(--text-sm);">No skill slots assigned yet.</p>'}</div>
     </div>
