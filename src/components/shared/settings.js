@@ -217,7 +217,7 @@ export function openSettingsModal(char, onSave) {
 
 // ─── Helpers ──────────────────────────────────────────────────────
 function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function getCssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function getCssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
 
 function rgbToHex(color) {
   if (!color) return '#000000';

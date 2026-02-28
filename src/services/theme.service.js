@@ -273,7 +273,7 @@ export function applyLayout(layoutConfig) {
 
 // ─── Build Custom Theme from Current CSS Vars ─────────────────────
 export function getCurrentThemeVars() {
-  const computed = getComputedStyle(document.documentElement);
+  const computed = getComputedStyle(document.body);
   const vars = {};
   const varNames = [
     '--bg-primary', '--bg-secondary', '--bg-tertiary', '--bg-elevated',
