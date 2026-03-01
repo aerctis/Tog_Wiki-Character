@@ -224,6 +224,21 @@ export const LAYOUT_PRESETS = [
       'identity-widget':   { col: 7, span: 3, row: 3 },
       'backstory-widget':  { col: 10, span: 3, row: 3 }
     }
+  },
+  {
+    id: 'skills-focus',
+    name: 'Skills Focus',
+    description: 'Full-width skills on top row, combat + equipment, best for mid-late game.',
+    grid: {
+      'skills-widget':     { col: 1, span: 12, row: 1 },
+      'top-stats-widget':  { col: 1, span: 4, row: 2 },
+      'equipment-widget':  { col: 5, span: 5, row: 2 },
+      'stats-widget':      { col: 10, span: 3, row: 2 },
+      'resources-widget':  { col: 1, span: 3, row: 3 },
+      'traits-widget':     { col: 4, span: 3, row: 3 },
+      'identity-widget':   { col: 7, span: 3, row: 3 },
+      'backstory-widget':  { col: 10, span: 3, row: 3 }
+    }
   }
 ];
 

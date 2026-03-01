@@ -97,7 +97,8 @@ export function calculateAvailableSkillPoints(level, usedSkillPoints, bonusSkill
 }
 
 /**
- * Calculate spirit pool: base spirit + equipment bonuses - equipped skill costs.
+ * Calculate spirit pool: base spirit + equipment bonuses - equipped skill spirit costs.
+ * Spirit cost can now vary per skill level via spiritCostPerLevel array.
  *
  * @param {Object<number, Array>} skillsByTier
  * @param {Object} equipment - Equipment slots (values may have spiritBonus)
@@ -107,12 +108,11 @@ export function calculateSpirit(skillsByTier, equipment) {
   let usedSpirit = 0;
   let spiritBonus = 0;
 
-  // Sum spirit costs from equipped skills
+  // Sum spirit costs from equipped skills (level-aware)
   for (const tier in skillsByTier) {
     for (const skill of skillsByTier[tier]) {
-      if (skill && skill.spiritCost) {
-        usedSpirit += skill.spiritCost;
-      }
+      if (!skill) continue;
+      usedSpirit += getSkillSpiritCost(skill);
     }
   }
 
@@ -131,15 +131,49 @@ export function calculateSpirit(skillsByTier, equipment) {
 }
 
 /**
- * Determine what tier a skill is at a given level.
- * Skills can progress through tiers as they level up.
+ * Get the effective spirit cost for a skill at its current level.
+ * Uses spiritCostPerLevel array if available, otherwise falls back to flat spiritCost.
  *
- * @param {object} skill - Skill data with tierByLevel array
- * @param {number} level - Current skill level
- * @returns {number} - Tier number (1-5)
+ * @param {object} skill - Skill data (with level set)
+ * @returns {number} Spirit cost at current level
  */
-export function getSkillTier(skill, level) {
-  if (!skill.tierByLevel) return 1;
-  const entry = [...skill.tierByLevel].reverse().find(t => level >= t.level);
-  return entry ? entry.tier : 1;
+export function getSkillSpiritCost(skill) {
+  if (!skill) return 0;
+  const lvl = skill.level || 0;
+
+  // Per-level spirit cost array takes priority
+  if (skill.spiritCostPerLevel && skill.spiritCostPerLevel.length > 0) {
+    // Index 0 = cost at level 1, etc. Level 0 (just learned, not leveled) uses index 0 too.
+    const idx = Math.max(0, lvl - 1);
+    return skill.spiritCostPerLevel[Math.min(idx, skill.spiritCostPerLevel.length - 1)] || 0;
+  }
+
+  // Flat spirit cost (legacy / simple skills)
+  return skill.spiritCost || 0;
+}
+
+/**
+ * Get the tier for a skill. In the new system, each skill has a fixed tier.
+ * This replaces the old tierByLevel progression system.
+ *
+ * @param {object} skill - Skill data with tier field
+ * @returns {number} - Tier number (1+)
+ */
+export function getSkillTier(skill) {
+  return skill.tier || 1;
+}
+
+/**
+ * Find the highest tier number that has any slots across a character's skillsByTier.
+ * Useful for dynamic rendering when tiers can be arbitrary.
+ *
+ * @param {Object<number|string, Array>} skillsByTier
+ * @returns {number[]} Sorted array of tier numbers that have slots
+ */
+export function getActiveTiers(skillsByTier) {
+  if (!skillsByTier) return [];
+  return Object.keys(skillsByTier)
+    .map(Number)
+    .filter(t => !isNaN(t) && skillsByTier[t] && skillsByTier[t].length > 0)
+    .sort((a, b) => a - b);
 }

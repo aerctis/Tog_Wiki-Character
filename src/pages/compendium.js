@@ -4,7 +4,7 @@
 
 import { waitForAuth, signOut, isCurrentUserAdmin } from '../services/auth.service.js';
 import { fetchAllLibraries } from '../services/library.service.js';
-import { fetchWikiPages, saveWikiPage, deleteWikiPage, fetchSessionLogs, saveSessionLog, deleteSessionLog } from '../services/wiki.service.js';
+import { fetchWikiPages, fetchWikiPage, saveWikiPage, deleteWikiPage, fetchSessionLogs, saveSessionLog, deleteSessionLog } from '../services/wiki.service.js';
 import { fetchPlayerDiscovery, getDiscoveryLevel, setDiscoveryLevel, setDiscoveryLevelForAll, DISCOVERY_LEVELS } from '../services/discovery.service.js';
 import { getPartyMembers } from '../services/admin.service.js';
 import { initNotifications, showNotification } from '../components/shared/notification.js';
@@ -12,6 +12,8 @@ import { openModal, closeModal, getModalBody, showConfirmation } from '../compon
 import { parseTextile, slugify } from '../services/wiki-parser.js';
 import { STATS, POSITIONS, BEAST_TIERS } from '../config/constants.js';
 import { calculateBeastStats, getBeastAbilities } from '../systems/beast-system.js';
+import { getSkillSpiritCost } from '../systems/skill-engine.js';
+
 
 // ─── State ────────────────────────────────────────────────────────
 let currentUser = null;
@@ -383,7 +385,7 @@ function renderSkillsSection() {
         <div class="comp-card ${discClass(level)}" ${canClick ? `data-skill-id="${skill.id}"` : ''}>
           <img class="comp-card-img" src="${imgSrc}" alt="${showName ? esc(skill.name) : '???'}">
           <div class="comp-card-name">${showName ? esc(skill.name) : '???'}</div>
-          ${showName ? `<div class="comp-card-meta">${(skill.positionTags || []).join(', ') || skill.skillType || ''}</div>` : ''}
+          ${showName ? `<div class="comp-card-meta">T${skill.tier || 1} · ${(skill.positionTags || []).join(', ') || skill.skillType || ''}</div>` : ''}
           ${isAdmin ? `<div class="comp-card-disc-badge">${level}</div>` : ''}
         </div>`;
     }).join('') || '<div class="comp-empty"><div class="comp-empty-icon">✦</div><div class="comp-empty-text">No skills found</div></div>';
@@ -401,54 +403,108 @@ function renderSkillsSection() {
   document.getElementById('skills-search').addEventListener('input', e => renderGrid(e.target.value.toLowerCase()));
 }
 
-function openSkillDetail(skill) {
+async function openSkillDetail(skill) {
   const level = getDiscoveryLevel(playerDiscovery, 'skills', skill.id);
-  let tableHtml = '';
-  if (skill.effects && skill.effects.length > 0) {
-    let rows = '';
-    for (let i = 1; i <= (skill.maxLevel || 5); i++) {
-      const e = skill.effects[i - 1];
-      let effectText = '-';
-      if (e) {
-        effectText = e.stat ? `${e.stat}: ${e.type === 'add' ? '+' : 'x'}${e.value}` : '';
-        if (e.stat2) effectText += `, ${e.stat2}: +${e.value2}`;
-        if (e.description) effectText = e.description;
-      }
-      const cost = skill.costPerLevel ? skill.costPerLevel[i - 1] : i;
-      rows += `<tr><td>${i}</td><td>${cost}</td><td>${effectText}</td></tr>`;
+
+  // Build progression table
+  let tableRows = '';
+  const hasSpiritColumn = (skill.spiritCostPerLevel && skill.spiritCostPerLevel.length > 0) || skill.spiritCost;
+  for (let i = 1; i <= (skill.maxLevel || 5); i++) {
+    const e = (skill.effects || []).find(ef => ef.level === i) || skill.effects?.[i - 1];
+    let effectText = '—';
+    if (e) {
+      effectText = e.description || (e.stat ? `${e.stat}: ${e.type === 'add' ? '+' : '×'}${e.value}` : '');
+      if (e.stat2 && !e.description) effectText += `, ${e.stat2}: +${e.value2}`;
     }
-    tableHtml = `
-      <div style="font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-widest); color: var(--text-muted); margin-bottom: var(--space-2); margin-top: var(--space-4); font-weight: 500;">Progression</div>
-      <table class="detail-stats-table">
-        <thead><tr><th>Lvl</th><th>Cost</th><th>Effect</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    `;
+    const cost = skill.costPerLevel ? skill.costPerLevel[i - 1] : i;
+    const spiritAtLevel = skill.spiritCostPerLevel?.[i - 1] ?? skill.spiritCost ?? 0;
+    tableRows += `<tr>
+      <td>${i}</td><td>${cost}</td>${hasSpiritColumn ? `<td>${spiritAtLevel}</td>` : ''}<td>${effectText}</td>
+    </tr>`;
+  }
+
+  const currentSpirit = skill.spiritCostPerLevel?.[0] ?? skill.spiritCost ?? 0;
+
+  // Wiki link
+  const wikiLink = skill.wikiPageId
+    ? `<a href="#" class="skill-wiki-link" data-wiki-id="${skill.wikiPageId}" style="color: var(--accent-text); font-size: var(--text-xs); text-decoration: underline; cursor: pointer;">View Wiki Page →</a>`
+    : '';
+
+  // Build skill info panel (read-only version of sheet's openSkillInfoModal)
+  let skillInfoHtml = `
+    <div style="display: grid; grid-template-columns: 220px 1fr; gap: var(--space-6);">
+      <div>
+        <img class="detail-image" src="${skill.icon || ''}" alt="${esc(skill.name)}" style="width: 100%; border-radius: var(--radius-md); margin-bottom: var(--space-3);">
+        <p style="font-size: var(--text-sm); color: var(--text-secondary);">${esc(skill.description || '')}</p>
+        <div style="margin-top: var(--space-3); font-size: var(--text-xs); color: var(--text-muted);">
+          ${skill.skillType ? `<div><strong>Type:</strong> ${esc(skill.skillType)}</div>` : ''}
+          <div><strong>Tier:</strong> ${skill.tier || 1}</div>
+          ${currentSpirit ? `<div><strong>Spirit Cost:</strong> ${currentSpirit}</div>` : ''}
+          ${skill.charges ? `<div><strong>Charges:</strong> ${skill.charges}</div>` : ''}
+          <div><strong>Positions:</strong> ${(skill.positionTags || []).join(', ') || 'Any'}</div>
+          <div><strong>Max Level:</strong> ${skill.maxLevel || '?'}</div>
+        </div>
+        ${wikiLink ? `<div style="margin-top: var(--space-3);">${wikiLink}</div>` : ''}
+        ${renderAdminDiscoveryBtn('skills', skill.id, level)}
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="detail-stats-table" style="font-size: var(--text-sm);">
+          <thead><tr><th>Lvl</th><th>Cost</th>${hasSpiritColumn ? '<th>Spirit</th>' : ''}<th>Effect</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  // Load wiki page content if available
+  let wikiHtml = '';
+  if (skill.wikiPageId) {
+    try {
+      const wikiPage = await fetchWikiPage(skill.wikiPageId);
+      if (wikiPage && wikiPage.content) {
+        wikiHtml = `
+          <div style="margin-top: var(--space-6); padding-top: var(--space-4); border-top: 2px solid var(--border-color);">
+            <div class="wiki-page">${renderMarkdown(wikiPage.content)}</div>
+          </div>
+        `;
+      }
+    } catch (e) {
+      console.warn('Failed to load skill wiki page:', e);
+    }
   }
 
   const bodyEl = document.createElement('div');
   bodyEl.innerHTML = `
     <div class="detail-panel">
-      <div>
-        <img class="detail-image" src="${skill.icon || ''}" alt="${esc(skill.name)}">
-        <div style="margin-top: var(--space-4); font-size: var(--text-xs); color: var(--text-secondary); display: flex; flex-direction: column; gap: var(--space-2);">
-          ${skill.skillType ? `<div><strong style="color: var(--text-primary);">Type:</strong> ${esc(skill.skillType)}</div>` : ''}
-          ${skill.spiritCost ? `<div><strong style="color: var(--text-primary);">Spirit Cost:</strong> ${skill.spiritCost}</div>` : ''}
-          ${skill.charges ? `<div><strong style="color: var(--text-primary);">Charges:</strong> ${skill.charges}</div>` : ''}
-          <div><strong style="color: var(--text-primary);">Positions:</strong> ${(skill.positionTags || []).join(', ') || 'Any'}</div>
-          <div><strong style="color: var(--text-primary);">Max Level:</strong> ${skill.maxLevel || '?'}</div>
-        </div>
-      </div>
-      <div>
-        <div class="detail-title">${esc(skill.name)}</div>
-        ${skill.description ? `<div class="detail-desc">${esc(skill.description)}</div>` : ''}
-        ${tableHtml}
-        ${renderAdminDiscoveryBtn('skills', skill.id, level)}
-      </div>
+      ${skillInfoHtml}
+      ${wikiHtml}
     </div>
   `;
-  openModal({ id: 'skill-detail', title: skill.name, body: bodyEl, size: 'lg' });
+
+  openModal({ id: 'skill-detail', title: skill.name, body: bodyEl, size: 'xl' });
   attachAdminDiscoveryHandlers(bodyEl);
+
+  // Handle wiki link clicks within the modal
+  bodyEl.querySelectorAll('.skill-wiki-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeModal('skill-detail');
+      // Navigate to wiki section with the page
+      activeSection = 'wiki';
+      renderLayout();
+      setTimeout(() => renderWikiSection(link.dataset.wikiId), 50);
+    });
+  });
+
+  // Handle wiki-link navigation inside wiki content
+  bodyEl.querySelectorAll('[data-wiki-nav]').forEach(link => {
+    link.addEventListener('click', () => {
+      closeModal('skill-detail');
+      activeSection = 'wiki';
+      renderLayout();
+      setTimeout(() => renderWikiSection(link.dataset.wikiNav), 50);
+    });
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════

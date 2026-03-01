@@ -7,7 +7,7 @@ import { fetchAllLibraries, listenToGameSettings } from '../services/library.ser
 import { buyItem, listItemForSale, sendItem, sendCurrency } from '../services/shop.service.js';
 import { getPartyMembers, fetchPartyCharacters } from '../services/admin.service.js';
 import { calculateBaseStats, calculateTotalStats, calculateStatCap, wouldExceedCap, calculateAvailableStatPoints } from '../systems/stat-calculator.js';
-import { aggregateSkillBonuses, calculateUsedSkillPoints, calculateAvailableSkillPoints, calculateSpirit, getSkillTier } from '../systems/skill-engine.js';
+import { aggregateSkillBonuses, calculateUsedSkillPoints, calculateAvailableSkillPoints, calculateSpirit, getSkillTier, getSkillSpiritCost, getActiveTiers } from '../systems/skill-engine.js';
 import { calculateMaxHP, calculateHitDice, calculateSpeed, calculateAttack, calculateDefense } from '../systems/combat-math.js';
 import { calculateBeastStats, getBeastAbilities, checkBeastSynergy, calculateAvailableBeastPoints } from '../systems/beast-system.js';
 import { initNotifications, showNotification } from '../components/shared/notification.js';
@@ -28,6 +28,7 @@ let partyMembers = []; // For trading
 let unsubCharListener = null;
 let unsubShopListener = null;
 let isAdminUser = false;
+let skillEditMode = false;
 
 // ─── Init ─────────────────────────────────────────────────────────
 async function init() {
@@ -71,13 +72,19 @@ async function init() {
       tertiary: rawChar.affinities?.tertiary || []
     };
     char.equipment = { ...defaults.equipment, ...(rawChar.equipment || {}) };
-    char.skillsByTier = {
-      1: rawChar.skillsByTier?.['1'] || rawChar.skillsByTier?.[1] || [],
-      2: rawChar.skillsByTier?.['2'] || rawChar.skillsByTier?.[2] || [],
-      3: rawChar.skillsByTier?.['3'] || rawChar.skillsByTier?.[3] || [],
-      4: rawChar.skillsByTier?.['4'] || rawChar.skillsByTier?.[4] || [],
-      5: rawChar.skillsByTier?.['5'] || rawChar.skillsByTier?.[5] || []
-    };
+    // Dynamically load all tiers from saved data (supports arbitrary tier numbers)
+    char.skillsByTier = {};
+    const rawTiers = rawChar.skillsByTier || {};
+    for (const key of Object.keys(rawTiers)) {
+      const tierNum = Number(key);
+      if (!isNaN(tierNum)) {
+        char.skillsByTier[tierNum] = rawTiers[key] || [];
+      }
+    }
+    // Ensure at least tiers 1-5 exist for backwards compat
+    for (let t = 1; t <= 5; t++) {
+      if (!char.skillsByTier[t]) char.skillsByTier[t] = [];
+    }
     char.manualStatPoints = rawChar.manualStatPoints || rawChar.manualAdds || defaults.manualStatPoints;
     char.lockedStatPoints = rawChar.lockedStatPoints || defaults.lockedStatPoints;
     char.deallocationPoints = rawChar.deallocationPoints || 0;
@@ -120,13 +127,16 @@ async function init() {
         changed = true;
       }
     }
-    // Also merge skillsByTier slot additions (admin can add slots)
+    
+    // Also merge skillsByTier slot additions (admin can add slots, any tier)
     if (data.skillsByTier) {
-      for (let t = 1; t <= 5; t++) {
-        const remote = data.skillsByTier[t] || data.skillsByTier[String(t)] || [];
-        const local = char.skillsByTier[t] || [];
+      for (const key of Object.keys(data.skillsByTier)) {
+        const t = Number(key);
+        if (isNaN(t)) continue;
+        const remote = data.skillsByTier[key] || [];
+        if (!char.skillsByTier[t]) char.skillsByTier[t] = [];
+        const local = char.skillsByTier[t];
         if (remote.length > local.length) {
-          // Admin added slots — extend local array
           while (char.skillsByTier[t].length < remote.length) {
             char.skillsByTier[t].push(remote[char.skillsByTier[t].length]);
           }
@@ -134,6 +144,7 @@ async function init() {
         }
       }
     }
+
     if (changed) {
       recalculateAndRender();
       showNotification('Character updated by GM', 'info');
@@ -501,17 +512,20 @@ function renderSkills() {
 
   // Spirit tank + skill tiers
   const spiritPct = computed.spirit.max > 0 ? (computed.spirit.current / computed.spirit.max) * 100 : 0;
+  const activeTiers = getActiveTiers(char.skillsByTier);
 
   let tiersHtml = '';
-  for (let tier = 1; tier <= 5; tier++) {
+  for (const tier of activeTiers) {
     const slots = char.skillsByTier[tier] || [];
-    if (slots.length === 0) continue; // Only show tiers with slots
+    if (slots.length === 0) continue;
 
     const slotHtml = slots.map((skill, i) => {
       if (!skill) {
         return `<div class="skill-slot empty" data-skill-slot="${tier}-${i}"></div>`;
       }
       const displaySkill = char.proficientSkills.includes(skill.id) && skill.proficientVersion ? skill.proficientVersion : skill;
+      const spiritCost = getSkillSpiritCost(skill);
+      const hasSpiritCost = spiritCost > 0;
       let chargesHtml = '';
       if (skill.charges) {
         chargesHtml = '<div class="skill-charges">';
@@ -521,15 +535,16 @@ function renderSkills() {
         }
         chargesHtml += '</div>';
       }
-      return `<div class="skill-slot" data-skill-info="${tier}-${i}" title="${displaySkill.name}">
+      return `<div class="skill-slot ${hasSpiritCost ? 'spirit-border' : ''}" data-skill-info="${tier}-${i}" title="${displaySkill.name}" ${skillEditMode ? `draggable="true" data-drag-tier="${tier}" data-drag-idx="${i}"` : ''}>
         <img src="${displaySkill.icon || skill.icon || ''}" alt="${displaySkill.name}">
         <div class="skill-level-badge">${skill.level || 0}</div>
         ${chargesHtml}
+        ${skillEditMode ? `<div class="skill-reorder-handle">⠿</div>` : ''}
       </div>`;
     }).join('');
 
     tiersHtml += `
-      <div class="tier-section">
+      <div class="tier-section" ${skillEditMode ? `data-tier-drop="${tier}"` : ''}>
         <div class="tier-header">
           <h4>Tier ${tier}</h4>
         </div>
@@ -549,26 +564,99 @@ function renderSkills() {
           <div style="font-size: 0.45rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-top: 2px;">Spirit</div>
         </div>
       </div>
-      <div>${tiersHtml || '<p style="color: var(--text-muted); font-size: var(--text-sm);">No skill slots assigned yet.</p>'}</div>
+      <div>
+        <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-2);">
+          <button class="btn-sm btn-ghost" id="btn-skill-edit-mode" title="Reorder skills" style="font-size: 0.6rem; padding: 2px 6px;">${skillEditMode ? '✓ Done' : '✎ Edit'}</button>
+        </div>
+        ${tiersHtml || '<p style="color: var(--text-muted); font-size: var(--text-sm);">No skill slots assigned yet.</p>'}
+      </div>
     </div>
   `;
 
-  // Bind skill slot clicks
-  el.querySelectorAll('.skill-slot.empty').forEach(slot => {
-    slot.addEventListener('click', () => {
-      const [tier, index] = slot.dataset.skillSlot.split('-').map(Number);
-      openSkillLibraryModal(tier, index);
-    });
+  // Edit mode toggle
+  el.querySelector('#btn-skill-edit-mode')?.addEventListener('click', () => {
+    skillEditMode = !skillEditMode;
+    renderSkills();
   });
 
-  el.querySelectorAll('[data-skill-info]').forEach(slot => {
-    slot.addEventListener('click', () => {
-      const [tier, index] = slot.dataset.skillInfo.split('-').map(Number);
-      openSkillInfoModal(tier, index);
+  // Drag and drop for reordering (only in edit mode)
+  if (skillEditMode) {
+    let dragSrc = null;
+    el.querySelectorAll('[draggable="true"]').forEach(slot => {
+      slot.addEventListener('dragstart', e => {
+        dragSrc = { tier: Number(slot.dataset.dragTier), idx: Number(slot.dataset.dragIdx) };
+        slot.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      slot.addEventListener('dragend', () => {
+        slot.classList.remove('dragging');
+        dragSrc = null;
+      });
+      slot.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        slot.classList.add('drag-over');
+      });
+      slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+      slot.addEventListener('drop', e => {
+        e.preventDefault();
+        slot.classList.remove('drag-over');
+        if (!dragSrc) return;
+        const destTier = Number(slot.dataset.dragTier || slot.dataset.skillSlot?.split('-')[0]);
+        const destIdx = Number(slot.dataset.dragIdx ?? slot.dataset.skillSlot?.split('-')[1]);
+        if (isNaN(destTier) || isNaN(destIdx)) return;
+        // Only allow reorder within same tier
+        if (dragSrc.tier !== destTier) {
+          showNotification('Can only reorder within the same tier', 'danger');
+          return;
+        }
+        // Swap
+        const arr = char.skillsByTier[destTier];
+        const temp = arr[dragSrc.idx];
+        arr[dragSrc.idx] = arr[destIdx];
+        arr[destIdx] = temp;
+        onChange();
+        dragSrc = null;
+      });
     });
-  });
+    // Also make empty slots droppable
+    el.querySelectorAll('.skill-slot.empty').forEach(slot => {
+      slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
+      slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+      slot.addEventListener('drop', e => {
+        e.preventDefault();
+        slot.classList.remove('drag-over');
+        if (!dragSrc) return;
+        const [destTier, destIdx] = slot.dataset.skillSlot.split('-').map(Number);
+        if (dragSrc.tier !== destTier) { showNotification('Can only reorder within the same tier', 'danger'); return; }
+        const arr = char.skillsByTier[destTier];
+        const temp = arr[dragSrc.idx];
+        arr[dragSrc.idx] = arr[destIdx];
+        arr[destIdx] = temp;
+        onChange();
+        dragSrc = null;
+      });
+    });
+  }
 
-  // Bind charge toggles
+  // Bind skill slot clicks (not in edit mode)
+  if (!skillEditMode) {
+    el.querySelectorAll('.skill-slot.empty').forEach(slot => {
+      slot.addEventListener('click', () => {
+        const [tier, index] = slot.dataset.skillSlot.split('-').map(Number);
+        openSkillLibraryModal(tier, index);
+      });
+    });
+
+    el.querySelectorAll('[data-skill-info]').forEach(slot => {
+      slot.addEventListener('click', () => {
+        const [tier, index] = slot.dataset.skillInfo.split('-').map(Number);
+        openSkillInfoModal(tier, index);
+      });
+    });
+  }
+
+  // Bind charge toggles (always active)
   el.querySelectorAll('.charge-box').forEach(box => {
     box.addEventListener('click', e => {
       e.stopPropagation();
@@ -678,7 +766,7 @@ function openSkillLibraryModal(tier, index) {
   const discoveredSkills = libs.skills.filter(s =>
     s.isDiscovered !== false &&
     s.positionTags?.includes(pos) &&
-    getSkillTier(s, 1) <= tier
+    (s.tier || 1) === tier
   );
 
   const body = document.createElement('div');
@@ -696,14 +784,20 @@ function openSkillLibraryModal(tier, index) {
       (s.skillType || '').toLowerCase().includes(filter)
     );
     grid.innerHTML = filtered.length === 0 ? '<p style="color: var(--text-muted);">No skills available.</p>' :
-      filtered.map(s => `
-        <div class="card" data-select-skill="${s.id}">
+      filtered.map(s => {
+        const alreadyEquipped = Object.values(char.skillsByTier).flat().some(eq => eq && eq.id === s.id);
+        const learnCost = s.costPerLevel?.[0] || 1;
+        const spiritCost = s.spiritCostPerLevel?.[0] || s.spiritCost || 0;
+        return `
+        <div class="card ${alreadyEquipped ? 'card-disabled' : ''}" data-select-skill="${s.id}">
           <img src="${s.icon || ''}" alt="${s.name}">
           <div class="card-title">${s.name}</div>
           <div class="card-subtitle">${s.skillType || ''}</div>
-          ${s.spiritCost ? `<div class="card-subtitle" style="color: var(--accent);">Spirit: ${s.spiritCost}</div>` : ''}
-        </div>
-      `).join('');
+          <div class="card-subtitle" style="color: var(--accent);">Learn: ${learnCost} SP</div>
+          ${spiritCost ? `<div class="card-subtitle" style="color: var(--warning);">Spirit: ${spiritCost}</div>` : ''}
+          ${alreadyEquipped ? '<div class="card-subtitle" style="color: var(--text-muted);">Already learned</div>' : ''}
+        </div>`;
+      }).join('');
 
     grid.querySelectorAll('[data-select-skill]').forEach(card => {
       card.addEventListener('click', () => {
@@ -712,20 +806,12 @@ function openSkillLibraryModal(tier, index) {
 
         // Check if already equipped
         if (Object.values(char.skillsByTier).flat().some(s => s && s.id === skillData.id)) {
-          showNotification('Skill already equipped', 'danger');
-          return;
-        }
-        // Check spirit
-        if (skillData.spiritCost && skillData.spiritCost > computed.spirit.current) {
-          showNotification('Not enough spirit', 'danger');
+          showNotification('Skill already learned', 'danger');
           return;
         }
 
-        char.skillsByTier[tier][index] = { ...skillData, level: 0, usedCharges: 0 };
-        closeModal('skill-library');
-        onChange();
-        // Open skill info to let them level up
-        openSkillInfoModal(tier, index);
+        // Show skill summary + confirm learn
+        openSkillLearnConfirmModal(tier, index, skillData);
       });
     });
   };
@@ -736,6 +822,61 @@ function openSkillLibraryModal(tier, index) {
   });
 }
 
+// ─── Skill Learn Confirmation Modal ───────────────────────────────
+function openSkillLearnConfirmModal(tier, index, skillData) {
+  const learnCost = skillData.costPerLevel?.[0] || 1;
+  const spiritCost = skillData.spiritCostPerLevel?.[0] || skillData.spiritCost || 0;
+  const canAfford = computed.availableSkillPoints >= learnCost;
+  const canSpirit = spiritCost <= computed.spirit.current;
+
+  let effectsPreview = '';
+  if (skillData.effects && skillData.effects.length > 0) {
+    const e = skillData.effects.find(ef => ef.level === 1);
+    if (e) {
+      effectsPreview = `<div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--text-secondary);">
+        <strong>Lv1 Effect:</strong> ${e.description || (e.stat ? `${e.stat}: ${e.type === 'add' ? '+' : '×'}${e.value}` : '—')}
+      </div>`;
+    }
+  }
+
+  const body = `
+    <div style="display: flex; gap: var(--space-4); align-items: flex-start;">
+      <img src="${skillData.icon || ''}" alt="${skillData.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-md);">
+      <div style="flex: 1;">
+        <h3 style="color: var(--text-bright); margin-bottom: var(--space-2);">${skillData.name}</h3>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary);">${skillData.description || ''}</p>
+        <div style="margin-top: var(--space-3); font-size: var(--text-xs); color: var(--text-muted); display: flex; flex-direction: column; gap: var(--space-1);">
+          <div><strong>Type:</strong> ${skillData.skillType || 'N/A'}</div>
+          <div><strong>Tier:</strong> ${skillData.tier || 1}</div>
+          ${spiritCost ? `<div><strong>Spirit Cost:</strong> ${spiritCost}</div>` : ''}
+          ${skillData.charges ? `<div><strong>Charges:</strong> ${skillData.charges}</div>` : ''}
+          <div><strong>Positions:</strong> ${(skillData.positionTags || []).join(', ')}</div>
+        </div>
+        ${effectsPreview}
+        <div style="margin-top: var(--space-4); padding: var(--space-3); background: var(--bg-tertiary); border: 1px solid var(--border-color);">
+          <div style="font-size: var(--text-sm); font-weight: 700; color: ${canAfford ? 'var(--success)' : 'var(--danger)'};">
+            Cost to Learn: ${learnCost} SP ${canAfford ? '✓' : '(not enough SP)'}
+          </div>
+          ${spiritCost ? `<div style="font-size: var(--text-sm); color: ${canSpirit ? 'var(--text-secondary)' : 'var(--danger)'};">Spirit: ${spiritCost} ${canSpirit ? '✓' : '(not enough spirit)'}</div>` : ''}
+        </div>
+        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
+          <button class="btn-ghost" id="learn-cancel" style="flex:1;">Cancel</button>
+          <button class="btn-accent" id="learn-confirm" style="flex:1;" ${(!canAfford || !canSpirit) ? 'disabled' : ''}>Learn Skill</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  openModal({ id: 'skill-learn-confirm', title: 'Learn Skill?', size: 'md', body });
+
+  document.getElementById('learn-cancel')?.addEventListener('click', () => closeModal('skill-learn-confirm'));
+  document.getElementById('learn-confirm')?.addEventListener('click', () => {
+    char.skillsByTier[tier][index] = { ...skillData, level: 1, usedCharges: 0 };
+    closeModal('skill-learn-confirm');
+    closeModal('skill-library');
+    onChange();
+  });
+}
 // ─── Skill Info Modal ─────────────────────────────────────────────
 function openSkillInfoModal(tier, index) {
   const s = char.skillsByTier[tier][index];
@@ -745,19 +886,28 @@ function openSkillInfoModal(tier, index) {
   const displaySkill = isProficient && s.proficientVersion ? s.proficientVersion : s;
   const nextLvl = (s.level || 0) + 1;
   const nextCost = s.costPerLevel?.[s.level || 0] || 999;
-  const canLvlUp = nextLvl <= s.maxLevel && computed.availableSkillPoints >= nextCost && getSkillTier(s, nextLvl) <= tier;
-  const canDelevel = s.level > 0;
+  const canLvlUp = nextLvl <= s.maxLevel && computed.availableSkillPoints >= nextCost;
+  const canUnlearn = s.level <= 1; // Can only unlearn at level 1 (refunds learn cost)
 
   let tableRows = '';
   for (let i = 1; i <= s.maxLevel; i++) {
     const e = (displaySkill.effects || s.effects || []).find(ef => ef.level === i);
-    let effectText = e ? `${e.stat}: ${e.type === 'add' ? '+' : '×'}${e.value}` : '—';
-    if (e && e.stat2) effectText += `, ${e.stat2}: +${e.value2}`;
+    let effectText = e ? (e.description || `${e.stat}: ${e.type === 'add' ? '+' : '×'}${e.value}`) : '—';
+    if (e && e.stat2 && !e.description) effectText += `, ${e.stat2}: +${e.value2}`;
     const isCurrent = s.level === i;
+    const spiritAtLevel = s.spiritCostPerLevel?.[i - 1] ?? s.spiritCost ?? 0;
     tableRows += `<tr ${isCurrent ? 'style="background: var(--accent-muted);"' : ''}>
-      <td>${i}</td><td>${s.costPerLevel[i - 1] || '?'}</td><td>${getSkillTier(s, i)}</td><td>${effectText}</td>
+      <td>${i}</td><td>${s.costPerLevel[i - 1] || '?'}</td>${spiritAtLevel !== undefined ? `<td>${spiritAtLevel}</td>` : ''}<td>${effectText}</td>
     </tr>`;
   }
+
+  const hasSpiritColumn = (s.spiritCostPerLevel && s.spiritCostPerLevel.length > 0) || s.spiritCost;
+  const currentSpirit = getSkillSpiritCost(s);
+
+  // Build wiki link
+  const wikiLink = s.wikiPageId
+    ? `<a href="/compendium.html#wiki-${s.wikiPageId}" target="_blank" style="color: var(--accent-text); font-size: var(--text-xs); text-decoration: underline; cursor: pointer;">View Wiki Page →</a>`
+    : '';
 
   const body = `
     <div style="display: grid; grid-template-columns: 220px 1fr; gap: var(--space-6);">
@@ -766,19 +916,21 @@ function openSkillInfoModal(tier, index) {
         <p style="font-size: var(--text-sm); color: var(--text-secondary);">${displaySkill.description || s.description || ''}</p>
         <div style="margin-top: var(--space-3); font-size: var(--text-xs); color: var(--text-muted);">
           <div><strong>Type:</strong> ${s.skillType || 'N/A'}</div>
-          ${s.spiritCost ? `<div><strong>Spirit:</strong> ${s.spiritCost}</div>` : ''}
+          <div><strong>Tier:</strong> ${s.tier || 1}</div>
+          ${currentSpirit ? `<div><strong>Spirit:</strong> ${currentSpirit}</div>` : ''}
+          ${s.charges ? `<div><strong>Charges:</strong> ${s.charges}</div>` : ''}
           <div><strong>Positions:</strong> ${(s.positionTags || []).join(', ')}</div>
         </div>
+        ${wikiLink ? `<div style="margin-top: var(--space-3);">${wikiLink}</div>` : ''}
         <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-2);">
           <div style="font-weight: 700; font-size: var(--text-lg); text-align: center;">Level ${s.level || 0} / ${s.maxLevel}</div>
           <button class="btn-accent" id="skill-lvl-up" ${!canLvlUp ? 'disabled' : ''}>Level Up (${nextCost} SP)</button>
-          <button class="btn-ghost" id="skill-delevel" ${!canDelevel ? 'disabled' : ''}>De-level</button>
-          <button class="btn-danger" id="skill-unlearn">Unlearn</button>
+          <button class="btn-danger" id="skill-unlearn" ${!canUnlearn ? 'disabled title="Can only unlearn at level 1"' : ''}>Unlearn</button>
         </div>
       </div>
       <div style="overflow-x: auto;">
         <table class="stats-table" style="font-size: var(--text-sm);">
-          <thead><tr><th>Lvl</th><th>Cost</th><th>Tier</th><th>Effect</th></tr></thead>
+          <thead><tr><th>Lvl</th><th>Cost</th>${hasSpiritColumn ? '<th>Spirit</th>' : ''}<th>Effect</th></tr></thead>
           <tbody>${tableRows}</tbody>
         </table>
       </div>
@@ -796,16 +948,8 @@ function openSkillInfoModal(tier, index) {
     }
   });
 
-  document.getElementById('skill-delevel')?.addEventListener('click', () => {
-    if (s.level > 0) {
-      s.level--;
-      onChange();
-      closeModal('skill-info');
-      openSkillInfoModal(tier, index);
-    }
-  });
-
   document.getElementById('skill-unlearn')?.addEventListener('click', async () => {
+    if (!canUnlearn) return;
     const yes = await showConfirmation(`Unlearn ${s.name}? Skill points will be refunded.`, { danger: true, confirmText: 'Unlearn' });
     if (yes) {
       char.skillsByTier[tier][index] = null;

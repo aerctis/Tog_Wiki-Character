@@ -17,6 +17,12 @@
 .hp-controls { display: flex; align-items: center; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
 .hp-controls input { width: 50px; text-align: center; padding: var(--space-1); }
 
+/* ── Disabled card (already equipped) ── */
+.card.card-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* ── Stats table ── */
 .stats-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 .stats-table th, .stats-table td { padding: var(--space-2) var(--space-3); text-align: left; vertical-align: middle; border-bottom: 1px solid var(--border-subtle); }
@@ -83,8 +89,39 @@
 .skill-slot img { width: 100%; height: 100%; object-fit: cover; }
 .skill-level-badge { position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.85); border-top: 1px solid var(--border-color); border-left: 1px solid var(--border-color); color: var(--text-bright); font-size: 8px; font-weight: 700; padding: 1px 4px; font-variant-numeric: tabular-nums; }
 .skill-charges { position: absolute; top: 2px; left: 2px; display: flex; gap: 1px; }
-.charge-box { width: 5px; height: 5px; border: 1px solid rgba(100,180,255,0.5); background: transparent; cursor: pointer; }
-.charge-box.used { background: rgba(100,180,255,0.8); box-shadow: 0 0 4px rgba(100,180,255,0.3); }
+.charge-box { width: 17px; height: 17px; border: 2px solid rgba(100,180,255,0.5); background: transparent; cursor: pointer; transition: all 0.15s ease; }
+.charge-box:hover { border-color: rgba(100,180,255,0.8); }
+.charge-box.used { background: rgba(100,180,255,0.8); box-shadow: 0 0 6px rgba(100,180,255,0.4); }
+
+/* ── Spirit cost accent border ── */
+.skill-slot.spirit-border {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 8px var(--accent-muted);
+}
+
+/* ── Skill reorder mode ── */
+.skill-slot[draggable="true"] {
+  cursor: grab;
+}
+.skill-slot[draggable="true"]:active {
+  cursor: grabbing;
+}
+.skill-slot.dragging {
+  opacity: 0.4;
+}
+.skill-slot.drag-over {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 12px var(--accent-muted);
+}
+.skill-reorder-handle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  font-size: 8px;
+  color: var(--text-muted);
+  pointer-events: none;
+  line-height: 1;
+}
 
 /* ── Equipment ── */
 .equipment-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); }

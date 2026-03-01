@@ -44,15 +44,6 @@ export const EQUIPMENT_SLOTS = {
   beast2: { label: 'Beast', type: 'beast', icon: 'beast', position: 'Anima' }
 };
 
-// Skill tier level ranges (for display/reference)
-export const SKILL_TIER_RANGES = {
-  1: { min: 1, max: 50, label: 'Ordinary' },
-  2: { min: 25, max: 100, label: 'Regular' },
-  3: { min: 75, max: 150, label: 'Ranker' },
-  4: { min: 125, max: 200, label: 'HR' },
-  5: { min: 175, max: 250, label: 'Irregular' }
-};
-
 // Beast tier configuration
 export const BEAST_TIERS = {
   1: { label: 'Common', growthMultiplier: 0.6 },

@@ -21,7 +21,7 @@ import {
 import { listenToCharacter } from '../../services/character.service.js';
 import { calculateBeastStats, getBeastAbilities } from '../../systems/beast-system.js';
 import { calculateBaseStats, calculateTotalStats, calculateStatCap, calculateAvailableStatPoints } from '../../systems/stat-calculator.js';
-import { aggregateSkillBonuses, calculateUsedSkillPoints, calculateAvailableSkillPoints, calculateSpirit } from '../../systems/skill-engine.js';
+import { aggregateSkillBonuses, calculateUsedSkillPoints, calculateAvailableSkillPoints, calculateSpirit, getActiveTiers } from '../../systems/skill-engine.js';
 import { calculateMaxHP, calculateSpeed, calculateAttack, calculateDefense } from '../../systems/combat-math.js';
 import { fetchPlayerDiscovery, setDiscoveryLevel, setDiscoveryLevelForAll } from '../../services/discovery.service.js';
 
@@ -404,8 +404,10 @@ function openManageSlotsModal(uid, pc) {
   const render = () => {
     const b = getModalBody('manage-slots');
     if (!b) return;
+    const existingTiers = Object.keys(pc.skillsByTier || {}).map(Number).filter(t => !isNaN(t)).sort((a,b) => a-b);
+    const maxTier = Math.max(5, ...existingTiers, 0);
     let html = '';
-    for (let tier = 1; tier <= 5; tier++) {
+    for (let tier = 1; tier <= maxTier; tier++) {
       const slots = pc.skillsByTier?.[tier] || pc.skillsByTier?.[String(tier)] || [];
       html += `<div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle);">
         <span><strong>Tier ${tier}</strong> — ${slots.length} slot${slots.length !== 1 ? 's' : ''}</span>
@@ -415,11 +417,17 @@ function openManageSlotsModal(uid, pc) {
         </div>
       </div>`;
     }
+    html += `<div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-color); display: flex; gap: var(--space-2); align-items: center;">
+      <label style="font-size: var(--text-xs); color: var(--text-muted);">New Tier:</label>
+      <input type="number" id="new-tier-input" min="1" value="${maxTier + 1}" style="width: 60px;">
+      <button class="btn-sm btn-accent" id="btn-add-new-tier">Add Tier Slot</button>
+    </div>`;
     b.innerHTML = html;
+
     b.querySelectorAll('[data-slot-add]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        await addSkillSlots(uid, parseInt(btn.dataset.slotAdd));
-        const t = btn.dataset.slotAdd;
+        const t = parseInt(btn.dataset.slotAdd);
+        await addSkillSlots(uid, t);
         if (!pc.skillsByTier) pc.skillsByTier = {};
         if (!pc.skillsByTier[t]) pc.skillsByTier[t] = [];
         pc.skillsByTier[t].push(null);
@@ -429,12 +437,22 @@ function openManageSlotsModal(uid, pc) {
     });
     b.querySelectorAll('[data-slot-remove]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        await removeSkillSlot(uid, parseInt(btn.dataset.slotRemove));
-        const t = btn.dataset.slotRemove;
+        const t = parseInt(btn.dataset.slotRemove);
+        await removeSkillSlot(uid, t);
         if (pc.skillsByTier?.[t]?.length > 0) pc.skillsByTier[t].pop();
         showNotification('Slot removed', 'success');
         render();
       });
+    });
+    b.querySelector('#btn-add-new-tier')?.addEventListener('click', async () => {
+      const t = parseInt(b.querySelector('#new-tier-input').value);
+      if (isNaN(t) || t < 1) { showNotification('Invalid tier number', 'danger'); return; }
+      await addSkillSlots(uid, t);
+      if (!pc.skillsByTier) pc.skillsByTier = {};
+      if (!pc.skillsByTier[t]) pc.skillsByTier[t] = [];
+      pc.skillsByTier[t].push(null);
+      showNotification(`Tier ${t} slot added`, 'success');
+      render();
     });
   };
   openModal({ id: 'manage-slots', title: `Skill Slots — ${pc.name}`, size: 'sm', body: '' });
@@ -837,11 +855,12 @@ function openContentEditor(type, id) {
         </div>
         <div class="field-group"><label>Skill Type / Category</label><input type="text" id="ce-skillType" value="${esc(s.skillType || '')}"></div>
         <div class="field-group"><label>Position Tags (comma-sep)</label><input type="text" id="ce-positions" value="${(s.positionTags || []).join(', ')}"></div>
+        <div class="field-group"><label>Tier</label><input type="number" id="ce-tier" min="1" value="${s.tier || 1}"></div>
         <div class="field-group"><label>Max Level</label><input type="number" id="ce-maxLevel" value="${s.maxLevel || 5}"></div>
-        <div class="field-group"><label>Spirit Cost</label><input type="number" id="ce-spiritCost" value="${s.spiritCost || 0}"></div>
         <div class="field-group"><label>Charges</label><input type="number" id="ce-charges" value="${s.charges || 0}"></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%; min-height: 80px;">${esc(s.description || '')}</textarea></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Cost per Level (JSON array)</label><input type="text" id="ce-costPerLevel" value="${JSON.stringify(s.costPerLevel || [1, 2, 3, 4, 5])}"></div>
+        <div class="field-group" style="grid-column: 1/-1;"><label>Cost per Level (JSON array — index 0 is the learn cost, subsequent are upgrade costs)</label><input type="text" id="ce-costPerLevel" value="${JSON.stringify(s.costPerLevel || [1, 2, 3, 4, 5])}"></div>
+        <div class="field-group" style="grid-column: 1/-1;"><label>Spirit Cost per Level (JSON array — leave empty or [0] for no spirit cost)</label><input type="text" id="ce-spiritCostPerLevel" value="${JSON.stringify(s.spiritCostPerLevel || [])}"></div>
         <div class="field-group" style="grid-column: 1/-1;"><label>Effects (JSON array)</label><textarea id="ce-effects" style="width:100%; min-height:100px; font-family: var(--font-mono); font-size: var(--text-xs);">${JSON.stringify(s.effects || [], null, 2)}</textarea></div>
       </div>
       <div class="field-group"><label><input type="checkbox" id="ce-discovered" ${s.isDiscovered !== false ? 'checked' : ''}> Discovered</label></div>
@@ -940,19 +959,41 @@ function openContentEditor(type, id) {
     try {
       let data = {};
       if (type === 'skills') {
+        const spiritArr = document.getElementById('ce-spiritCostPerLevel').value.trim();
+        const parsedSpirit = spiritArr ? JSON.parse(spiritArr) : [];
         data = {
           name: document.getElementById('ce-name').value.trim(),
           icon: document.getElementById('ce-icon').value.trim(),
           skillType: document.getElementById('ce-skillType').value.trim(),
           positionTags: document.getElementById('ce-positions').value.split(',').map(s => s.trim()).filter(Boolean),
+          tier: parseInt(document.getElementById('ce-tier').value) || 1,
           maxLevel: parseInt(document.getElementById('ce-maxLevel').value) || 5,
-          spiritCost: parseInt(document.getElementById('ce-spiritCost').value) || 0,
+          spiritCostPerLevel: parsedSpirit,
+          spiritCost: parsedSpirit.length > 0 ? parsedSpirit[0] : 0,
           charges: parseInt(document.getElementById('ce-charges').value) || 0,
           description: document.getElementById('ce-desc').value.trim(),
           costPerLevel: JSON.parse(document.getElementById('ce-costPerLevel').value),
           effects: JSON.parse(document.getElementById('ce-effects').value),
           isDiscovered: document.getElementById('ce-discovered').checked
         };
+        // Auto-create wiki page on new skill creation
+        if (!existing && data.name) {
+          try {
+            const wikiTitle = data.name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            const { saveWikiPage } = await import('../../services/wiki.service.js');
+            const wikiId = await saveWikiPage(null, {
+              title: wikiTitle,
+              content: `# ${wikiTitle}\n\n*This page is a placeholder for the skill "${data.name}". Edit to add details.*`,
+              format: 'markdown',
+              isDraft: true,
+              linkedSkillId: null, // will be set after skill is saved
+              createdAt: new Date().toISOString()
+            });
+            data.wikiPageId = wikiId;
+          } catch (wikiErr) {
+            console.warn('Failed to auto-create wiki page:', wikiErr);
+          }
+        }
       } else if (type === 'items') {
         data = {
           name: document.getElementById('ce-name').value.trim(),
@@ -984,7 +1025,23 @@ function openContentEditor(type, id) {
       }
       if (!data.name) { showNotification('Name is required', 'danger'); return; }
       const saveFn = type === 'skills' ? saveSkill : type === 'items' ? saveItem : saveBeast;
-      await saveFn(id, data);
+      const savedId = await saveFn(id, data);
+      // For new skills, update the wiki page with the linkedSkillId
+      if (type === 'skills' && !existing && data.wikiPageId && savedId) {
+        try {
+          const { saveWikiPage } = await import('../../services/wiki.service.js');
+          await saveWikiPage(data.wikiPageId, { linkedSkillId: savedId });
+        } catch (e) { console.warn('Wiki link update failed:', e); }
+      }
+      // If skill name changed, update linked wiki page title
+      if (type === 'skills' && existing && data.name !== existing.name && existing.wikiPageId) {
+        try {
+          const { saveWikiPage } = await import('../../services/wiki.service.js');
+          const newTitle = data.name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          await saveWikiPage(existing.wikiPageId, { title: newTitle });
+        } catch (e) { console.warn('Wiki title update failed:', e); }
+      }
+
       showNotification(existing ? 'Updated!' : 'Created!', 'success');
       closeModal('content-editor');
       renderContentTab();
