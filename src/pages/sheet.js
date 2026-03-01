@@ -7,7 +7,7 @@ import { fetchAllLibraries, listenToGameSettings } from '../services/library.ser
 import { buyItem, listItemForSale, sendItem, sendCurrency } from '../services/shop.service.js';
 import { getPartyMembers, fetchPartyCharacters } from '../services/admin.service.js';
 import { calculateBaseStats, calculateTotalStats, calculateStatCap, wouldExceedCap, calculateAvailableStatPoints } from '../systems/stat-calculator.js';
-import { aggregateSkillBonuses, calculateUsedSkillPoints, calculateAvailableSkillPoints, calculateSpirit, getSkillTier, getSkillSpiritCost, getActiveTiers } from '../systems/skill-engine.js';
+import { aggregateSkillBonuses, calculateUsedSkillPoints, calculateAvailableSkillPoints, calculateSpirit, getSkillTier, getSkillSpiritCost, getActiveTiers, getActiveWeakBonuses } from '../systems/skill-engine.js';
 import { calculateMaxHP, calculateHitDice, calculateSpeed, calculateAttack, calculateDefense } from '../systems/combat-math.js';
 import { calculateBeastStats, getBeastAbilities, checkBeastSynergy, calculateAvailableBeastPoints } from '../systems/beast-system.js';
 import { initNotifications, showNotification } from '../components/shared/notification.js';
@@ -127,7 +127,7 @@ async function init() {
         changed = true;
       }
     }
-    
+
     // Also merge skillsByTier slot additions (admin can add slots, any tier)
     if (data.skillsByTier) {
       for (const key of Object.keys(data.skillsByTier)) {
@@ -172,7 +172,7 @@ async function init() {
 function recalculate() {
   const c = char;
   const baseStats = calculateBaseStats(c.level || 1, c.position || 'Guide', c.affinities, c.manualStatPoints);
-  const skillBonuses = aggregateSkillBonuses(c.skillsByTier, c.proficientSkills);
+  const skillBonuses = aggregateSkillBonuses(char.skillsByTier, char.proficientSkills, char.proficientCategories);
   const totalStats = calculateTotalStats(baseStats, skillBonuses);
   const statCap = calculateStatCap(totalStats, c.statMultiplier || 2.0);
   const availableStatPoints = calculateAvailableStatPoints(c.level || 1, c.manualStatPoints, c.bonusStatPoints || 0);
@@ -829,6 +829,15 @@ function openSkillLearnConfirmModal(tier, index, skillData) {
   const canAfford = computed.availableSkillPoints >= learnCost;
   const canSpirit = spiritCost <= computed.spirit.current;
 
+  // Show what weak proficiency bonuses would apply
+  const previewWeakBonuses = getActiveWeakBonuses(skillData, char.proficientCategories || []);
+  let weakBonusPreview = '';
+  if (previewWeakBonuses.length > 0) {
+    weakBonusPreview = `<div style="margin-top: var(--space-2); font-size: var(--text-xs); color: var(--accent-text);">
+      <strong>Proficiency Bonuses:</strong> ${previewWeakBonuses.map(wb => wb.description || `${wb.type === 'add' ? '+' : '×'}${wb.value} ${wb.stat}`).join(', ')}
+    </div>`;
+  }
+
   let effectsPreview = '';
   if (skillData.effects && skillData.effects.length > 0) {
     const e = skillData.effects.find(ef => ef.level === 1);
@@ -853,6 +862,7 @@ function openSkillLearnConfirmModal(tier, index, skillData) {
           <div><strong>Positions:</strong> ${(skillData.positionTags || []).join(', ')}</div>
         </div>
         ${effectsPreview}
+        ${weakBonusPreview}
         <div style="margin-top: var(--space-4); padding: var(--space-3); background: var(--bg-tertiary); border: 1px solid var(--border-color);">
           <div style="font-size: var(--text-sm); font-weight: 700; color: ${canAfford ? 'var(--success)' : 'var(--danger)'};">
             Cost to Learn: ${learnCost} SP ${canAfford ? '✓' : '(not enough SP)'}
@@ -904,6 +914,27 @@ function openSkillInfoModal(tier, index) {
   const hasSpiritColumn = (s.spiritCostPerLevel && s.spiritCostPerLevel.length > 0) || s.spiritCost;
   const currentSpirit = getSkillSpiritCost(s);
 
+  // Weak proficiency bonuses display
+  const activeWeakBonuses = getActiveWeakBonuses(s, char.proficientCategories || []);
+  let weakProfHtml = '';
+  if (activeWeakBonuses.length > 0) {
+    weakProfHtml = `<div style="margin-top: var(--space-3); padding: var(--space-2); background: var(--accent-muted); border-left: 2px solid var(--accent);">
+      <div style="font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-widest); color: var(--accent-text); margin-bottom: var(--space-1); font-weight: 600;">Weak Proficiency Bonuses</div>
+      ${activeWeakBonuses.map(wb => `<div style="font-size: var(--text-xs); color: var(--text-secondary);">
+        <strong>${wb.category}:</strong> ${wb.description || (wb.stat ? `${wb.type === 'add' ? '+' : '×'}${wb.value} ${wb.stat}` : '—')}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Strong proficiency indicator
+  const hasStrongProf = (char.proficientSkills || []).includes(s.id) && s.proficientVersion;
+  let strongProfHtml = '';
+  if (hasStrongProf) {
+    strongProfHtml = `<div style="margin-top: var(--space-2); padding: var(--space-2); background: rgba(255,215,0,0.08); border-left: 2px solid #fbbf24;">
+      <div style="font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-widest); color: #fbbf24; font-weight: 600;">★ Strong Proficiency Active</div>
+    </div>`;
+  }
+
   // Build wiki link
   const wikiLink = s.wikiPageId
     ? `<a href="/compendium.html#wiki-${s.wikiPageId}" target="_blank" style="color: var(--accent-text); font-size: var(--text-xs); text-decoration: underline; cursor: pointer;">View Wiki Page →</a>`
@@ -921,8 +952,9 @@ function openSkillInfoModal(tier, index) {
           ${s.charges ? `<div><strong>Charges:</strong> ${s.charges}</div>` : ''}
           <div><strong>Positions:</strong> ${(s.positionTags || []).join(', ')}</div>
         </div>
-        ${wikiLink ? `<div style="margin-top: var(--space-3);">${wikiLink}</div>` : ''}
-        <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-2);">
+        ${weakProfHtml}
+        ${strongProfHtml}
+        ${wikiLink ? `<div style="margin-top: var(--space-3);">${wikiLink}</div>` : ''}        <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-2);">
           <div style="font-weight: 700; font-size: var(--text-lg); text-align: center;">Level ${s.level || 0} / ${s.maxLevel}</div>
           <button class="btn-accent" id="skill-lvl-up" ${!canLvlUp ? 'disabled' : ''}>Level Up (${nextCost} SP)</button>
           <button class="btn-danger" id="skill-unlearn" ${!canUnlearn ? 'disabled title="Can only unlearn at level 1"' : ''}>Unlearn</button>

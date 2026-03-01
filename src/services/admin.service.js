@@ -165,6 +165,20 @@ export async function removeProficiency(uid, category) {
   });
 }
 
+/** Add strong proficiency (specific skill) to player */
+export async function addStrongProficiency(uid, skillId) {
+  await updateDoc(doc(db, 'characters', uid), {
+    proficientSkills: arrayUnion(skillId)
+  });
+}
+
+/** Remove strong proficiency (specific skill) from player */
+export async function removeStrongProficiency(uid, skillId) {
+  await updateDoc(doc(db, 'characters', uid), {
+    proficientSkills: arrayRemove(skillId)
+  });
+}
+
 /** Add/remove special item for a player */
 export async function addSpecialItem(uid, item) {
   const snap = await getDoc(doc(db, 'characters', uid));

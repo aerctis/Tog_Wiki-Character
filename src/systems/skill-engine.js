@@ -6,33 +6,43 @@ import { PROFICIENCY_DISCOUNT, BASE_SPIRIT } from '../config/constants.js';
 
 /**
  * Aggregate all active skill effects into stat bonuses.
- * Walks every equipped skill across all tiers.
+ * Now also applies weak proficiency bonuses per-skill.
  *
- * @param {Object<number, Array>} skillsByTier - { 1: [skill, null, ...], 2: [...] }
- * @param {string[]} proficientSkills - Array of skill IDs the player is proficient in
+ * @param {Object<number, Array>} skillsByTier
+ * @param {string[]} proficientSkills - Skill IDs with strong proficiency
+ * @param {string[]} proficientCategories - Category names with weak proficiency
  * @returns {Object<string, { add: number, mul: number }>}
  */
-export function aggregateSkillBonuses(skillsByTier, proficientSkills = []) {
+export function aggregateSkillBonuses(skillsByTier, proficientSkills = [], proficientCategories = []) {
   const bonuses = {};
 
   for (const tier in skillsByTier) {
     for (const skill of skillsByTier[tier]) {
-      if (!skill || !skill.level || skill.level === 0 || !skill.effects) continue;
+      if (!skill || !skill.level || skill.level === 0) continue;
 
-      // Use proficient version if applicable
-      const isProficient = proficientSkills.includes(skill.id);
-      const displaySkill = (isProficient && skill.proficientVersion) ? skill.proficientVersion : skill;
-      const effects = displaySkill.effects || skill.effects;
+      // ── Strong proficiency: swap entire skill data ──
+      const hasStrongProf = proficientSkills.includes(skill.id);
+      const displaySkill = (hasStrongProf && skill.proficientVersion) ? skill.proficientVersion : skill;
+      const effects = displaySkill.effects || skill.effects || [];
 
       const effect = effects.find(e => e.level === skill.level);
-      if (!effect) continue;
+      if (effect) {
+        applyEffect(bonuses, effect.stat, effect.type, effect.value);
+        if (effect.stat2) {
+          applyEffect(bonuses, effect.stat2, effect.type2, effect.value2);
+        }
+      }
 
-      // Process primary effect
-      applyEffect(bonuses, effect.stat, effect.type, effect.value);
-
-      // Process secondary effect if present
-      if (effect.stat2) {
-        applyEffect(bonuses, effect.stat2, effect.type2, effect.value2);
+      // ── Weak proficiency bonuses ──
+      // skill.weakProficiencyBonuses: [{ category, stat?, type?, value?, description? }]
+      // If the player has a matching weak proficiency category, apply the bonus.
+      const weakBonuses = skill.weakProficiencyBonuses || [];
+      for (const wb of weakBonuses) {
+        if (wb.category && proficientCategories.includes(wb.category)) {
+          if (wb.stat && wb.type && wb.value !== undefined) {
+            applyEffect(bonuses, wb.stat, wb.type, wb.value);
+          }
+        }
       }
     }
   }
@@ -49,12 +59,7 @@ function applyEffect(bonuses, stat, type, value) {
 
 /**
  * Calculate total used skill points across all tiers.
- * Proficient categories get a discount.
- *
- * @param {Object<number, Array>} skillsByTier
- * @param {string[]} proficientCategories - Category names with discount
- * @param {string[]} proficientSkills - Specific skill IDs that are proficient
- * @returns {number} - Total skill points used (rounded)
+ * Proficient categories get a 20% discount.
  */
 export function calculateUsedSkillPoints(skillsByTier, proficientCategories = [], proficientSkills = []) {
   let total = 0;
@@ -63,16 +68,13 @@ export function calculateUsedSkillPoints(skillsByTier, proficientCategories = []
     for (const skill of skillsByTier[tier]) {
       if (!skill || !skill.level || skill.level === 0) continue;
 
-      // Determine which cost table to use
       const isProficient = proficientSkills.includes(skill.id);
       const costTable = (isProficient && skill.proficientVersion)
         ? skill.proficientVersion.costPerLevel
         : skill.costPerLevel;
 
-      // Sum up costs for levels 0 → current level
       let cost = costTable.slice(0, skill.level).reduce((a, b) => a + b, 0);
 
-      // Apply category proficiency discount
       if (skill.skillType && proficientCategories.includes(skill.skillType)) {
         cost *= PROFICIENCY_DISCOUNT;
       }
@@ -86,29 +88,18 @@ export function calculateUsedSkillPoints(skillsByTier, proficientCategories = []
 
 /**
  * Calculate available skill points.
- *
- * @param {number} level
- * @param {number} usedSkillPoints
- * @param {number} bonusSkillPoints - Extra points from admin or other sources
- * @returns {number}
  */
 export function calculateAvailableSkillPoints(level, usedSkillPoints, bonusSkillPoints = 0) {
   return (level - 1) - usedSkillPoints + bonusSkillPoints;
 }
 
 /**
- * Calculate spirit pool: base spirit + equipment bonuses - equipped skill spirit costs.
- * Spirit cost can now vary per skill level via spiritCostPerLevel array.
- *
- * @param {Object<number, Array>} skillsByTier
- * @param {Object} equipment - Equipment slots (values may have spiritBonus)
- * @returns {{ current: number, max: number }}
+ * Calculate spirit pool with per-level spirit costs.
  */
 export function calculateSpirit(skillsByTier, equipment) {
   let usedSpirit = 0;
   let spiritBonus = 0;
 
-  // Sum spirit costs from equipped skills (level-aware)
   for (const tier in skillsByTier) {
     for (const skill of skillsByTier[tier]) {
       if (!skill) continue;
@@ -116,59 +107,36 @@ export function calculateSpirit(skillsByTier, equipment) {
     }
   }
 
-  // Sum spirit bonuses from equipment
   for (const item of Object.values(equipment)) {
-    if (item && item.spiritBonus) {
-      spiritBonus += item.spiritBonus;
-    }
+    if (item && item.spiritBonus) spiritBonus += item.spiritBonus;
   }
 
   const max = BASE_SPIRIT + spiritBonus;
-  return {
-    current: max - usedSpirit,
-    max
-  };
+  return { current: max - usedSpirit, max };
 }
 
 /**
- * Get the effective spirit cost for a skill at its current level.
- * Uses spiritCostPerLevel array if available, otherwise falls back to flat spiritCost.
- *
- * @param {object} skill - Skill data (with level set)
- * @returns {number} Spirit cost at current level
+ * Get spirit cost at current level. Uses spiritCostPerLevel[] if available.
  */
 export function getSkillSpiritCost(skill) {
   if (!skill) return 0;
   const lvl = skill.level || 0;
-
-  // Per-level spirit cost array takes priority
   if (skill.spiritCostPerLevel && skill.spiritCostPerLevel.length > 0) {
-    // Index 0 = cost at level 1, etc. Level 0 (just learned, not leveled) uses index 0 too.
     const idx = Math.max(0, lvl - 1);
     return skill.spiritCostPerLevel[Math.min(idx, skill.spiritCostPerLevel.length - 1)] || 0;
   }
-
-  // Flat spirit cost (legacy / simple skills)
   return skill.spiritCost || 0;
 }
 
 /**
- * Get the tier for a skill. In the new system, each skill has a fixed tier.
- * This replaces the old tierByLevel progression system.
- *
- * @param {object} skill - Skill data with tier field
- * @returns {number} - Tier number (1+)
+ * Fixed tier per skill (replaces old tierByLevel).
  */
 export function getSkillTier(skill) {
   return skill.tier || 1;
 }
 
 /**
- * Find the highest tier number that has any slots across a character's skillsByTier.
- * Useful for dynamic rendering when tiers can be arbitrary.
- *
- * @param {Object<number|string, Array>} skillsByTier
- * @returns {number[]} Sorted array of tier numbers that have slots
+ * Sorted array of tier numbers that have slots.
  */
 export function getActiveTiers(skillsByTier) {
   if (!skillsByTier) return [];
@@ -176,4 +144,13 @@ export function getActiveTiers(skillsByTier) {
     .map(Number)
     .filter(t => !isNaN(t) && skillsByTier[t] && skillsByTier[t].length > 0)
     .sort((a, b) => a - b);
+}
+
+/**
+ * Get active weak proficiency bonuses for a skill given a player's categories.
+ * Useful for UI display.
+ */
+export function getActiveWeakBonuses(skill, proficientCategories = []) {
+  if (!skill.weakProficiencyBonuses) return [];
+  return skill.weakProficiencyBonuses.filter(wb => proficientCategories.includes(wb.category));
 }

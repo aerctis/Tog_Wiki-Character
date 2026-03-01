@@ -69,7 +69,7 @@ async function init() {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
-function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 function formatDate(d) {
   if (!d) return '';
@@ -100,22 +100,22 @@ function renderLayout() {
       <aside class="compendium-sidebar" id="comp-sidebar">
         <div class="sidebar-section">
           <div class="sidebar-section-title">Browse</div>
-          <a class="sidebar-link ${activeSection==='items'?'active':''}" data-section="items">
+          <a class="sidebar-link ${activeSection === 'items' ? 'active' : ''}" data-section="items">
             <span class="sidebar-icon">⚔</span> Equipment
           </a>
-          <a class="sidebar-link ${activeSection==='skills'?'active':''}" data-section="skills">
+          <a class="sidebar-link ${activeSection === 'skills' ? 'active' : ''}" data-section="skills">
             <span class="sidebar-icon">✦</span> Skills
           </a>
-          <a class="sidebar-link ${activeSection==='beasts'?'active':''}" data-section="beasts">
+          <a class="sidebar-link ${activeSection === 'beasts' ? 'active' : ''}" data-section="beasts">
             <span class="sidebar-icon">◈</span> Bestiary
           </a>
         </div>
         <div class="sidebar-section">
           <div class="sidebar-section-title">Knowledge</div>
-          <a class="sidebar-link ${activeSection==='wiki'?'active':''}" data-section="wiki">
+          <a class="sidebar-link ${activeSection === 'wiki' ? 'active' : ''}" data-section="wiki">
             <span class="sidebar-icon">◉</span> Wiki
           </a>
-          <a class="sidebar-link ${activeSection==='sessions'?'active':''}" data-section="sessions">
+          <a class="sidebar-link ${activeSection === 'sessions' ? 'active' : ''}" data-section="sessions">
             <span class="sidebar-icon">▣</span> Session Logs
           </a>
         </div>
@@ -152,10 +152,10 @@ function renderAdminDiscoveryBtn(category, id, currentLevel) {
   return `
     <div class="admin-discovery-controls" style="margin-top: var(--space-2); display: flex; gap: var(--space-1); flex-wrap: wrap;">
       <select class="discovery-select" data-disc-cat="${category}" data-disc-id="${id}" style="font-size: 0.6rem; padding: 2px 4px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-secondary);">
-        <option value="undiscovered" ${currentLevel==='undiscovered'?'selected':''}>Undiscovered</option>
-        <option value="seen" ${currentLevel==='seen'?'selected':''}>Seen</option>
-        <option value="learnable" ${currentLevel==='learnable'?'selected':''}>Learnable</option>
-        <option value="learned" ${currentLevel==='learned'?'selected':''}>Learned</option>
+        <option value="undiscovered" ${currentLevel === 'undiscovered' ? 'selected' : ''}>Undiscovered</option>
+        <option value="seen" ${currentLevel === 'seen' ? 'selected' : ''}>Seen</option>
+        <option value="learnable" ${currentLevel === 'learnable' ? 'selected' : ''}>Learnable</option>
+        <option value="learned" ${currentLevel === 'learned' ? 'selected' : ''}>Learned</option>
       </select>
       <button class="btn-xs btn-ghost disc-set-player" data-disc-cat="${category}" data-disc-id="${id}" title="Set for this player only" style="font-size: 0.55rem; padding: 1px 4px;">This Player</button>
       <button class="btn-xs btn-accent disc-set-all" data-disc-cat="${category}" data-disc-id="${id}" title="Set for ALL players" style="font-size: 0.55rem; padding: 1px 4px;">All Players</button>
@@ -241,7 +241,7 @@ function renderItemsSection() {
         return false; // Can't search undiscovered/seen items
       }
       return true;
-    }).sort((a,b) => {
+    }).sort((a, b) => {
       const la = getDiscoveryLevel(playerDiscovery, 'items', a.id);
       const lb = getDiscoveryLevel(playerDiscovery, 'items', b.id);
       const order = { learned: 0, learnable: 1, seen: 2, undiscovered: 3 };
@@ -284,7 +284,7 @@ function renderItemsSection() {
 function openItemDetail(item) {
   const level = getDiscoveryLevel(playerDiscovery, 'items', item.id);
   const statsHtml = item.statBonuses ? Object.entries(item.statBonuses)
-    .filter(([k,v]) => v)
+    .filter(([k, v]) => v)
     .map(([stat, val]) => `<div class="detail-meta-item"><strong>${esc(stat)}:</strong> +${val}</div>`)
     .join('') : '';
 
@@ -363,7 +363,7 @@ function renderSkillsSection() {
         return false;
       }
       return true;
-    }).sort((a,b) => {
+    }).sort((a, b) => {
       const la = getDiscoveryLevel(playerDiscovery, 'skills', a.id);
       const lb = getDiscoveryLevel(playerDiscovery, 'skills', b.id);
       const order = { learned: 0, learnable: 1, seen: 2, undiscovered: 3 };
@@ -444,6 +444,18 @@ async function openSkillDetail(skill) {
           <div><strong>Positions:</strong> ${(skill.positionTags || []).join(', ') || 'Any'}</div>
           <div><strong>Max Level:</strong> ${skill.maxLevel || '?'}</div>
         </div>
+        ${(skill.weakProficiencyBonuses || []).length > 0 ? `
+          <div style="margin-top:var(--space-2); font-size:var(--text-xs); color:var(--text-muted);">
+            <strong>Proficiency Bonuses:</strong>
+            ${skill.weakProficiencyBonuses.map(wb => `<div style="margin-left:var(--space-2);">• ${esc(wb.category)}: ${esc(wb.description || (wb.stat ? `${wb.type === 'add' ? '+' : '×'}${wb.value} ${wb.stat}` : ''))}</div>`).join('')}
+          </div>
+        ` : ''}
+        ${skill.proficientVersion ? `
+          <div style="margin-top:var(--space-2); padding:var(--space-2); background:rgba(255,215,0,0.05); border-left:2px solid #fbbf24;">
+            <div style="font-size:var(--text-xs); color:#fbbf24; font-weight:600;">★ Has Strong Proficiency Variant</div>
+            <div style="font-size:var(--text-xs); color:var(--text-secondary); margin-top:2px;">${esc(skill.proficientVersion.name || '')}</div>
+          </div>
+        ` : ''}
         ${wikiLink ? `<div style="margin-top: var(--space-3);">${wikiLink}</div>` : ''}
         ${renderAdminDiscoveryBtn('skills', skill.id, level)}
       </div>
@@ -534,7 +546,7 @@ function renderBeastsSection() {
         return false;
       }
       return true;
-    }).sort((a,b) => {
+    }).sort((a, b) => {
       const la = getDiscoveryLevel(playerDiscovery, 'beasts', a.id);
       const lb = getDiscoveryLevel(playerDiscovery, 'beasts', b.id);
       const order = { learned: 0, learnable: 1, seen: 2, undiscovered: 3 };
@@ -584,12 +596,12 @@ function openBeastDetail(beast) {
     abilitiesHtml = `
       <div style="font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-widest); color: var(--text-muted); margin: var(--space-4) 0 var(--space-2); font-weight: 500;">Abilities</div>
       ${abilities.map(ab => {
-        const evo = ab.currentEvolution;
-        return `<div style="background: var(--bg-tertiary); border: 1px solid var(--border-subtle); padding: var(--space-3); margin-bottom: var(--space-2);">
+      const evo = ab.currentEvolution;
+      return `<div style="background: var(--bg-tertiary); border: 1px solid var(--border-subtle); padding: var(--space-3); margin-bottom: var(--space-2);">
           <div style="font-weight: 600; color: var(--text-primary); font-size: var(--text-sm);">${esc(evo?.name || ab.name || 'Unknown')}</div>
           ${evo?.description ? `<div style="font-size: var(--text-xs); color: var(--text-secondary); margin-top: var(--space-1);">${esc(evo.description)}</div>` : ''}
         </div>`;
-      }).join('')}
+    }).join('')}
     `;
   }
 
@@ -872,8 +884,8 @@ function openWikiEditor(existingPage) {
           <input type="text" id="we-title" value="${esc(title)}" placeholder="Page title..." style="width:100%; margin-top: var(--space-1);">
         </div>
         <div class="md-editor-tabs">
-          <button class="md-editor-tab ${editorMode==='write'?'active':''}" data-mode="write">Write</button>
-          <button class="md-editor-tab ${editorMode==='preview'?'active':''}" data-mode="preview">Preview</button>
+          <button class="md-editor-tab ${editorMode === 'write' ? 'active' : ''}" data-mode="write">Write</button>
+          <button class="md-editor-tab ${editorMode === 'preview' ? 'active' : ''}" data-mode="preview">Preview</button>
         </div>
         ${editorMode === 'write' ? `
           <div class="md-editor-toolbar">
@@ -1074,8 +1086,8 @@ function openSessionEditor(existingLog) {
           <input type="text" id="se-summary" value="${esc(summary)}" placeholder="Brief summary..." style="width:100%; margin-top: var(--space-1);">
         </div>
         <div class="md-editor-tabs">
-          <button class="md-editor-tab ${editorMode==='write'?'active':''}" data-mode="write">Write</button>
-          <button class="md-editor-tab ${editorMode==='preview'?'active':''}" data-mode="preview">Preview</button>
+          <button class="md-editor-tab ${editorMode === 'write' ? 'active' : ''}" data-mode="write">Write</button>
+          <button class="md-editor-tab ${editorMode === 'preview' ? 'active' : ''}" data-mode="preview">Preview</button>
         </div>
         ${editorMode === 'write' ? `
           <textarea class="md-editor-textarea" id="se-content" placeholder="Write your session log using Markdown...">${esc(content)}</textarea>

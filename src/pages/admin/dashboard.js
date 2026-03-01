@@ -11,7 +11,7 @@ import {
   setPlayerLevel, setPlayerFloor, adjustPlayerCurrency, setPlayerStatMultiplier,
   adjustBonusStatPoints, adjustBonusSkillPoints, adjustBeastPoints,
   resetPlayerStats, grantDeallocationPoints, addSkillSlots, removeSkillSlot,
-  giveItem, removeItem, giveBeast, setBeastLevel, addProficiency, removeProficiency,
+  giveItem, removeItem, giveBeast, setBeastLevel, addProficiency, removeProficiency, addStrongProficiency, removeStrongProficiency,
   addSpecialItem, removeSpecialItem, levelUpAll,
   saveSkill, deleteSkill, saveItem, deleteItem, saveBeast, deleteBeast,
   saveSynergy, deleteSynergy, toggleDiscovery,
@@ -464,33 +464,57 @@ function openManageProfsModal(uid, pc) {
   const render = () => {
     const b = getModalBody('manage-profs');
     if (!b) return;
-    const current = pc.proficientCategories || [];
+    const currentWeak = pc.proficientCategories || [];
+    const currentStrong = pc.proficientSkills || [];
     const allTypes = [...new Set(libs.skills.map(s => s.skillType).filter(Boolean))];
-    const available = allTypes.filter(t => !current.includes(t));
+    const availableWeak = allTypes.filter(t => !currentWeak.includes(t));
+
+    // Skills that have a proficientVersion defined
+    const skillsWithStrongProf = libs.skills.filter(s => s.proficientVersion);
+    const availableStrong = skillsWithStrongProf.filter(s => !currentStrong.includes(s.id));
 
     b.innerHTML = `
-      <h4 style="margin-bottom: var(--space-3); color: var(--text-secondary);">Current Proficiencies</h4>
-      <div class="tag-list" style="margin-bottom: var(--space-4);">
-        ${current.length === 0 ? '<span style="color: var(--text-muted);">None</span>' :
-        current.map(c => `<span class="tag">${c}<span class="tag-remove" data-remove-prof="${c}">×</span></span>`).join('')}
+      <!-- ═══ WEAK PROFICIENCIES ═══ -->
+      <h4 style="margin-bottom: var(--space-3); color: var(--accent-text);">Weak Proficiencies (Category)</h4>
+      <p style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-2);">20% SP discount + per-skill bonuses for matching categories.</p>
+      <div class="tag-list" style="margin-bottom: var(--space-3);">
+        ${currentWeak.length === 0 ? '<span style="color: var(--text-muted);">None</span>' :
+        currentWeak.map(c => `<span class="tag">${c}<span class="tag-remove" data-remove-prof="${c}">×</span></span>`).join('')}
       </div>
-      <h4 style="margin-bottom: var(--space-3); color: var(--text-secondary);">Add Proficiency</h4>
-      <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
-        ${available.map(t => `<button class="btn-sm" data-add-prof="${t}">${t}</button>`).join('') || '<span style="color: var(--text-muted);">All assigned</span>'}
+      <div style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2);">
+        ${availableWeak.map(t => `<button class="btn-sm" data-add-prof="${t}">${t}</button>`).join('') || '<span style="color: var(--text-muted); font-size: var(--text-xs);">All assigned</span>'}
       </div>
-      <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle);">
-        <label>Custom:</label>
-        <div style="display: flex; gap: var(--space-2);">
-          <input type="text" id="custom-prof-name" placeholder="Category name...">
-          <button class="btn-sm btn-accent" id="add-custom-prof">Add</button>
+      <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4);">
+        <input type="text" id="custom-prof-name" placeholder="Custom category...">
+        <button class="btn-sm btn-accent" id="add-custom-prof">Add</button>
+      </div>
+
+      <!-- ═══ STRONG PROFICIENCIES ═══ -->
+      <div style="border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
+        <h4 style="margin-bottom: var(--space-3); color: #fbbf24;">★ Strong Proficiencies (Skill-specific)</h4>
+        <p style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-2);">Transforms the skill into its proficient variant (new icon, effects, etc). Skill level is retained.</p>
+        <div class="tag-list" style="margin-bottom: var(--space-3);">
+          ${currentStrong.length === 0 ? '<span style="color: var(--text-muted);">None</span>' :
+          currentStrong.map(sId => {
+            const sk = libs.skills.find(s => s.id === sId);
+            const name = sk ? sk.name : sId;
+            return `<span class="tag" style="border-color: #fbbf24;">★ ${esc(name)}<span class="tag-remove" data-remove-strong="${sId}">×</span></span>`;
+          }).join('')}
         </div>
+        ${availableStrong.length > 0 ? `
+          <div style="font-size: var(--text-xs); color: var(--text-muted); margin-bottom: var(--space-2);">Available (skills with a defined proficient variant):</div>
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+            ${availableStrong.map(s => `<button class="btn-sm" data-add-strong="${s.id}" title="${esc(s.proficientVersion?.name || s.name)}">★ ${esc(s.name)}</button>`).join('')}
+          </div>
+        ` : '<p style="color: var(--text-muted); font-size: var(--text-xs);">No skills have a strong proficiency variant defined yet. Define one in Content → Skills.</p>'}
       </div>
     `;
 
+    // Weak prof handlers
     b.querySelectorAll('[data-remove-prof]').forEach(btn => {
       btn.addEventListener('click', async () => {
         await removeProficiency(uid, btn.dataset.removeProf);
-        pc.proficientCategories = current.filter(c => c !== btn.dataset.removeProf);
+        pc.proficientCategories = currentWeak.filter(c => c !== btn.dataset.removeProf);
         showNotification('Removed', 'success'); render();
       });
     });
@@ -502,13 +526,32 @@ function openManageProfsModal(uid, pc) {
         showNotification('Added', 'success'); render();
       });
     });
-    document.getElementById('add-custom-prof')?.addEventListener('click', async () => {
-      const name = document.getElementById('custom-prof-name')?.value?.trim();
+    b.querySelector('#add-custom-prof')?.addEventListener('click', async () => {
+      const name = b.querySelector('#custom-prof-name')?.value?.trim();
       if (!name) return;
       await addProficiency(uid, name);
       if (!pc.proficientCategories) pc.proficientCategories = [];
       pc.proficientCategories.push(name);
       showNotification('Added', 'success'); render();
+    });
+
+    // Strong prof handlers
+    b.querySelectorAll('[data-remove-strong]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const sId = btn.dataset.removeStrong;
+        await removeStrongProficiency(uid, sId);
+        pc.proficientSkills = (pc.proficientSkills || []).filter(id => id !== sId);
+        showNotification('Removed', 'success'); render();
+      });
+    });
+    b.querySelectorAll('[data-add-strong]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const sId = btn.dataset.addStrong;
+        await addStrongProficiency(uid, sId);
+        if (!pc.proficientSkills) pc.proficientSkills = [];
+        pc.proficientSkills.push(sId);
+        showNotification('Strong proficiency granted!', 'success'); render();
+      });
     });
   };
   openModal({ id: 'manage-profs', title: `Proficiencies — ${pc.name}`, body: '' });
@@ -593,7 +636,7 @@ function openStatsResetModal(uid, pc) {
 // ─── View Full Sheet Modal ───────────────────────────────────────
 function openViewSheetModal(uid, pc) {
   const baseStats = calculateBaseStats(pc.level || 1, pc.position || 'Guide', pc.affinities || {}, pc.manualStatPoints || {});
-  const skillBonuses = aggregateSkillBonuses(pc.skillsByTier || {}, pc.proficientSkills || []);
+  const skillBonuses = aggregateSkillBonuses(pc.skillsByTier || {}, pc.proficientSkills || [], pc.proficientCategories || []);
   const totalStats = calculateTotalStats(baseStats, skillBonuses);
   const spirit = calculateSpirit(pc.skillsByTier || {}, pc.equipment || {});
   const maxHP = calculateMaxHP(totalStats, pc.level || 1, skillBonuses);
@@ -837,218 +880,618 @@ async function openDiscoveryModal(category, entryId, entryName) {
   }
 }
 
-function openContentEditor(type, id) {
-  const existing = id ? (type === 'skills' ? libs.skills : type === 'items' ? libs.items : libs.beasts).find(e => e.id === id) : null;
+function openContentEditor(type, existingId) {
+  const existing = existingId ? (type === 'skills' ? libs.skills : type === 'items' ? libs.items : libs.beasts).find(e => e.id === existingId) : null;
+  const id = existingId || null;
 
-  let formHtml = '';
-  if (type === 'skills') {
-    const s = existing || {};
-    formHtml = `
-      <div class="admin-form-grid">
-        <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
-        <div class="field-group"><label>Icon</label>
-          <div style="display:flex;gap:var(--space-2);align-items:center;">
-            <input type="text" id="ce-icon" value="${esc(s.icon || '')}" placeholder="Paste URL or upload" style="flex:1;">
-            <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
-            <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+  const bodyEl = document.createElement('div');
+
+  // ── Shared state for dynamic builders ──
+  let effectsList = existing?.effects ? [...existing.effects] : [];
+  let weakProfBonuses = existing?.weakProficiencyBonuses ? [...existing.weakProficiencyBonuses] : [];
+  let hasStrongProf = existing?.proficientVersion ? true : false;
+  let strongProfData = existing?.proficientVersion ? { ...existing.proficientVersion } : {};
+  let strongProfEffects = strongProfData.effects ? [...strongProfData.effects] : [];
+  let beastAbilities = existing?.abilities ? JSON.parse(JSON.stringify(existing.abilities)) : [];
+
+  // ── Render the form ──
+  const renderForm = () => {
+    let formHtml = '';
+
+    if (type === 'skills') {
+      const s = existing || {};
+      const allCategories = [...new Set(libs.skills.map(sk => sk.skillType).filter(Boolean))];
+
+      formHtml = `
+        <div class="admin-form-grid">
+          <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
+          <div class="field-group"><label>Icon</label>
+            <div style="display:flex;gap:var(--space-2);align-items:center;">
+              <input type="text" id="ce-icon" value="${esc(s.icon || '')}" placeholder="URL or upload" style="flex:1;">
+              <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
+              <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+            </div>
+          </div>
+          <div class="field-group"><label>Skill Type / Category</label>
+            <div style="display:flex;gap:var(--space-2);">
+              <select id="ce-skillType-select" style="flex:1;">
+                <option value="">-- Select or type custom --</option>
+                ${allCategories.map(c => `<option value="${esc(c)}" ${(s.skillType || '') === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+              </select>
+              <input type="text" id="ce-skillType-custom" value="${esc(s.skillType || '')}" placeholder="Custom..." style="flex:1;">
+            </div>
+          </div>
+          <div class="field-group"><label>Position Tags</label>
+            <div style="display:flex; flex-wrap:wrap; gap:var(--space-1);" id="ce-positions-group">
+              ${POSITIONS.map(p => `<label style="font-size:var(--text-xs); display:flex; align-items:center; gap:4px; cursor:pointer;">
+                <input type="checkbox" class="pos-check" value="${p}" ${(s.positionTags || []).includes(p) ? 'checked' : ''}> ${p}
+              </label>`).join('')}
+            </div>
+          </div>
+          <div class="field-group"><label>Tier</label><input type="number" id="ce-tier" min="1" value="${s.tier || 1}"></div>
+          <div class="field-group"><label>Max Level</label><input type="number" id="ce-maxLevel" value="${s.maxLevel || 5}"></div>
+          <div class="field-group"><label>Charges</label><input type="number" id="ce-charges" value="${s.charges || 0}"></div>
+          <div class="field-group" style="grid-column:1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%;min-height:80px;">${esc(s.description || '')}</textarea></div>
+          <div class="field-group" style="grid-column:1/-1;"><label>Cost per Level (index 0 = learn cost, rest = upgrade costs)</label><input type="text" id="ce-costPerLevel" value="${JSON.stringify(s.costPerLevel || [1, 2, 3, 4, 5])}"></div>
+          <div class="field-group" style="grid-column:1/-1;"><label>Spirit Cost per Level (empty = no spirit cost)</label><input type="text" id="ce-spiritCostPerLevel" value="${JSON.stringify(s.spiritCostPerLevel || [])}"></div>
+        </div>
+
+        <!-- ═══ EFFECTS BUILDER ═══ -->
+        <div style="margin-top:var(--space-4); border-top:1px solid var(--border-color); padding-top:var(--space-4);">
+          <h4 style="color:var(--text-bright); margin-bottom:var(--space-3);">Effects (per level)</h4>
+          <div id="effects-list"></div>
+          <button class="btn-sm btn-accent" id="add-effect" style="margin-top:var(--space-2);">+ Add Effect</button>
+        </div>
+
+        <!-- ═══ WEAK PROFICIENCY BONUSES ═══ -->
+        <div style="margin-top:var(--space-4); border-top:1px solid var(--border-color); padding-top:var(--space-4);">
+          <h4 style="color:var(--text-bright); margin-bottom:var(--space-3);">Weak Proficiency Bonuses</h4>
+          <p style="font-size:var(--text-xs); color:var(--text-muted); margin-bottom:var(--space-2);">Define bonuses players get if they have a matching weak proficiency. Each entry is one proficiency→bonus mapping.</p>
+          <div id="weak-prof-list"></div>
+          <button class="btn-sm btn-accent" id="add-weak-prof" style="margin-top:var(--space-2);">+ Add Weak Proficiency Bonus</button>
+        </div>
+
+        <!-- ═══ STRONG PROFICIENCY VARIANT ═══ -->
+        <div style="margin-top:var(--space-4); border-top:1px solid var(--border-color); padding-top:var(--space-4);">
+          <h4 style="color:var(--text-bright); margin-bottom:var(--space-3);">Strong Proficiency Variant</h4>
+          <label style="font-size:var(--text-sm); display:flex; align-items:center; gap:var(--space-2); cursor:pointer; margin-bottom:var(--space-3);">
+            <input type="checkbox" id="ce-has-strong-prof" ${hasStrongProf ? 'checked' : ''}> This skill has a strong proficiency variant
+          </label>
+          <div id="strong-prof-section" style="${hasStrongProf ? '' : 'display:none;'}">
+            <div class="admin-form-grid">
+              <div class="field-group"><label>Variant Name</label><input type="text" id="sp-name" value="${esc(strongProfData.name || '')}"></div>
+              <div class="field-group"><label>Variant Icon</label>
+                <div style="display:flex;gap:var(--space-2);align-items:center;">
+                  <input type="text" id="sp-icon" value="${esc(strongProfData.icon || '')}" placeholder="URL or upload" style="flex:1;">
+                  <button class="btn-sm btn-outline" id="sp-img-upload-btn" type="button">Upload</button>
+                  <input type="file" id="sp-img-file" accept="image/*" style="display:none;">
+                </div>
+              </div>
+              <div class="field-group" style="grid-column:1/-1;"><label>Variant Description</label><textarea id="sp-desc" style="width:100%;min-height:60px;">${esc(strongProfData.description || '')}</textarea></div>
+              <div class="field-group" style="grid-column:1/-1;"><label>Variant Cost per Level</label><input type="text" id="sp-costPerLevel" value="${JSON.stringify(strongProfData.costPerLevel || [])}"></div>
+            </div>
+            <h4 style="color:var(--text-secondary); margin:var(--space-3) 0 var(--space-2);">Variant Effects</h4>
+            <div id="strong-prof-effects-list"></div>
+            <button class="btn-sm btn-accent" id="add-strong-prof-effect" style="margin-top:var(--space-2);">+ Add Variant Effect</button>
           </div>
         </div>
-        <div class="field-group"><label>Skill Type / Category</label><input type="text" id="ce-skillType" value="${esc(s.skillType || '')}"></div>
-        <div class="field-group"><label>Position Tags (comma-sep)</label><input type="text" id="ce-positions" value="${(s.positionTags || []).join(', ')}"></div>
-        <div class="field-group"><label>Tier</label><input type="number" id="ce-tier" min="1" value="${s.tier || 1}"></div>
-        <div class="field-group"><label>Max Level</label><input type="number" id="ce-maxLevel" value="${s.maxLevel || 5}"></div>
-        <div class="field-group"><label>Charges</label><input type="number" id="ce-charges" value="${s.charges || 0}"></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%; min-height: 80px;">${esc(s.description || '')}</textarea></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Cost per Level (JSON array — index 0 is the learn cost, subsequent are upgrade costs)</label><input type="text" id="ce-costPerLevel" value="${JSON.stringify(s.costPerLevel || [1, 2, 3, 4, 5])}"></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Spirit Cost per Level (JSON array — leave empty or [0] for no spirit cost)</label><input type="text" id="ce-spiritCostPerLevel" value="${JSON.stringify(s.spiritCostPerLevel || [])}"></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Effects (JSON array)</label><textarea id="ce-effects" style="width:100%; min-height:100px; font-family: var(--font-mono); font-size: var(--text-xs);">${JSON.stringify(s.effects || [], null, 2)}</textarea></div>
-      </div>
-      <div class="field-group"><label><input type="checkbox" id="ce-discovered" ${s.isDiscovered !== false ? 'checked' : ''}> Discovered</label></div>
-    `;
-  } else if (type === 'items') {
-    const s = existing || {};
-    formHtml = `
-      <div class="admin-form-grid">
-        <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
-        <div class="field-group"><label>Image</label>
-          <div style="display:flex;gap:var(--space-2);align-items:center;">
-            <input type="text" id="ce-image" value="${esc(s.image || '')}" placeholder="Paste URL or upload" style="flex:1;">
-            <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
-            <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
-          </div>
-          ${s.image ? '<img src="' + '${esc(s.image)}' + '" style="max-height:40px;margin-top:4px;opacity:0.7;">' : ''}
+
+        <div style="margin-top:var(--space-4); display:flex; gap:var(--space-2); justify-content:flex-end;">
+          ${existing ? `<button class="btn-sm btn-danger" id="ce-delete">Delete</button>` : ''}
+          <button class="btn-sm btn-ghost" id="ce-cancel">Cancel</button>
+          <button class="btn-sm btn-accent" id="ce-save">${existing ? 'Update' : 'Create'}</button>
         </div>
-        <div class="field-group"><label>Type</label><select id="ce-type">
-          ${['weapon', 'armor', 'accessory', 'lighthouse', 'module'].map(t => `<option ${s.type === t ? 'selected' : ''}>${t}</option>`).join('')}
-        </select></div>
-        <div class="field-group"><label>Stat</label><select id="ce-stat"><option value="">None</option>${STATS.map(st => `<option ${s.stat === st ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
-        <div class="field-group"><label>Modifier</label><input type="number" id="ce-modifier" value="${s.modifier || 0}"></div>
-        <div class="field-group"><label>Spirit Bonus</label><input type="number" id="ce-spiritBonus" value="${s.spiritBonus || 0}"></div>
-        <div class="field-group"><label>Price</label><input type="number" id="ce-price" value="${s.price || 0}"></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Special Effect</label><input type="text" id="ce-specialEffect" value="${esc(s.specialEffect || '')}"></div>
-        <div class="field-group"><label>Radius (lighthouse)</label><input type="number" id="ce-radius" value="${s.radius || 0}"></div>
-        <div class="field-group"><label>Speed (lighthouse)</label><input type="number" id="ce-speed" value="${s.speed || 0}"></div>
-        <div class="field-group"><label>Sockets (lighthouse)</label><input type="number" id="ce-sockets" value="${s.sockets || 0}"></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Abilities (lighthouse, comma-sep)</label><input type="text" id="ce-abilities" value="${(s.abilities || []).join(', ')}"></div>
-      </div>
-      <div class="field-group"><label><input type="checkbox" id="ce-discovered" ${s.isDiscovered !== false ? 'checked' : ''}> Discovered</label></div>
-    `;
-  } else {
-    const s = existing || {};
-    formHtml = `
-      <div class="admin-form-grid">
-        <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
-        <div class="field-group"><label>Image</label>
-          <div style="display:flex;gap:var(--space-2);align-items:center;">
-            <input type="text" id="ce-image" value="${esc(s.image || '')}" placeholder="Paste URL or upload" style="flex:1;">
-            <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
-            <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+      `;
+    } else if (type === 'beasts') {
+      const b = existing || {};
+      const bs = b.baseStats || {};
+      const gr = b.growthRates || {};
+
+      formHtml = `
+        <div class="admin-form-grid">
+          <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(b.name || '')}"></div>
+          <div class="field-group"><label>Tier</label>
+            <select id="ce-tier">
+              ${[1,2,3,4,5].map(t => `<option value="${t}" ${(b.tier||1)===t?'selected':''}>${t} — ${BEAST_TIERS[t]?.label||''}</option>`).join('')}
+            </select>
           </div>
-          ${s.image ? '<img src="' + '${esc(s.image)}' + '" style="max-height:40px;margin-top:4px;opacity:0.7;">' : ''}
+          <div class="field-group"><label>Image</label>
+            <div style="display:flex;gap:var(--space-2);align-items:center;">
+              <input type="text" id="ce-icon" value="${esc(b.image || '')}" placeholder="URL or upload" style="flex:1;">
+              <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
+              <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+            </div>
+          </div>
+          <div class="field-group" style="grid-column:1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%;min-height:80px;">${esc(b.description || '')}</textarea></div>
         </div>
-        <div class="field-group"><label>Tier (1-5)</label><input type="number" id="ce-tier" min="1" max="5" value="${s.tier || 1}"></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%; min-height:80px;">${esc(s.description || '')}</textarea></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Base Stats (JSON: {hp, attack, defense, speed})</label><input type="text" id="ce-baseStats" value='${JSON.stringify(s.baseStats || { hp: 10, attack: 5, defense: 5, speed: 5 })}'></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Growth Rates (JSON: {hp, attack, defense, speed})</label><input type="text" id="ce-growthRates" value='${JSON.stringify(s.growthRates || { hp: 2, attack: 1, defense: 1, speed: 1 })}'></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Abilities (JSON array)</label><textarea id="ce-beastAbilities" style="width:100%; min-height:100px; font-family: var(--font-mono); font-size: var(--text-xs);">${JSON.stringify(s.abilities || [], null, 2)}</textarea></div>
-        <div class="field-group" style="grid-column: 1/-1;"><label>Synergy Tags (comma-sep)</label><input type="text" id="ce-synergyTags" value="${(s.synergyTags || []).join(', ')}"></div>
-      </div>
-      <div class="field-group"><label><input type="checkbox" id="ce-discovered" ${s.isDiscovered !== false ? 'checked' : ''}> Discovered</label></div>
-    `;
-  }
 
-  const footer = `<div class="modal-footer">
-    ${existing ? `<button class="btn-danger" id="ce-delete">Delete</button>` : ''}
-    <button class="btn-ghost" id="ce-cancel">Cancel</button>
-    <button class="btn-accent" id="ce-save">${existing ? 'Save' : 'Create'}</button>
-  </div>`;
+        <!-- ═══ BASE STATS ═══ -->
+        <div style="margin-top:var(--space-4); border-top:1px solid var(--border-color); padding-top:var(--space-4);">
+          <h4 style="color:var(--text-bright); margin-bottom:var(--space-3);">Base Stats (Level 1)</h4>
+          <div class="admin-form-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="field-group"><label>HP</label><input type="number" id="ce-bs-hp" value="${bs.hp || 10}"></div>
+            <div class="field-group"><label>Attack</label><input type="number" id="ce-bs-attack" value="${bs.attack || 5}"></div>
+            <div class="field-group"><label>Defense</label><input type="number" id="ce-bs-defense" value="${bs.defense || 5}"></div>
+            <div class="field-group"><label>Speed</label><input type="number" id="ce-bs-speed" value="${bs.speed || 5}"></div>
+          </div>
+        </div>
 
-  openModal({ id: 'content-editor', title: `${existing ? 'Edit' : 'New'} ${type.slice(0, -1)}`, size: 'lg', body: formHtml + footer });
+        <!-- ═══ GROWTH RATES ═══ -->
+        <div style="margin-top:var(--space-4); border-top:1px solid var(--border-color); padding-top:var(--space-4);">
+          <h4 style="color:var(--text-bright); margin-bottom:var(--space-3);">Growth Rates (per level)</h4>
+          <div class="admin-form-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="field-group"><label>HP</label><input type="number" id="ce-gr-hp" value="${gr.hp || 2}" step="0.1"></div>
+            <div class="field-group"><label>Attack</label><input type="number" id="ce-gr-attack" value="${gr.attack || 1}" step="0.1"></div>
+            <div class="field-group"><label>Defense</label><input type="number" id="ce-gr-defense" value="${gr.defense || 1}" step="0.1"></div>
+            <div class="field-group"><label>Speed</label><input type="number" id="ce-gr-speed" value="${gr.speed || 1}" step="0.1"></div>
+          </div>
+        </div>
 
-  document.getElementById('ce-cancel')?.addEventListener('click', () => closeModal('content-editor'));
+        <!-- ═══ ABILITIES BUILDER ═══ -->
+        <div style="margin-top:var(--space-4); border-top:1px solid var(--border-color); padding-top:var(--space-4);">
+          <h4 style="color:var(--text-bright); margin-bottom:var(--space-3);">Abilities</h4>
+          <div id="abilities-list"></div>
+          <button class="btn-sm btn-accent" id="add-ability" style="margin-top:var(--space-2);">+ Add Ability</button>
+        </div>
 
-  // Image upload handler — converts file to base64 data URL
-  const uploadBtn = document.getElementById('ce-img-upload-btn');
-  const fileInput = document.getElementById('ce-img-file');
-  if (uploadBtn && fileInput) {
-    uploadBtn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
+        <div style="margin-top:var(--space-4); display:flex; gap:var(--space-2); justify-content:flex-end;">
+          ${existing ? `<button class="btn-sm btn-danger" id="ce-delete">Delete</button>` : ''}
+          <button class="btn-sm btn-ghost" id="ce-cancel">Cancel</button>
+          <button class="btn-sm btn-accent" id="ce-save">${existing ? 'Update' : 'Create'}</button>
+        </div>
+      `;
+    } else {
+      // Items — keep existing raw form for now (deferred per user request)
+      const s = existing || {};
+      formHtml = `
+        <div class="admin-form-grid">
+          <div class="field-group"><label>Name</label><input type="text" id="ce-name" value="${esc(s.name || '')}"></div>
+          <div class="field-group"><label>Image</label>
+            <div style="display:flex;gap:var(--space-2);align-items:center;">
+              <input type="text" id="ce-icon" value="${esc(s.image || '')}" placeholder="URL or upload" style="flex:1;">
+              <button class="btn-sm btn-outline" id="ce-img-upload-btn" type="button">Upload</button>
+              <input type="file" id="ce-img-file" accept="image/*" style="display:none;">
+            </div>
+          </div>
+          <div class="field-group"><label>Equipment Type</label><input type="text" id="ce-equipType" value="${esc(s.equipmentType || '')}"></div>
+          <div class="field-group"><label>Price</label><input type="number" id="ce-price" value="${s.price || 0}"></div>
+          <div class="field-group" style="grid-column:1/-1;"><label>Description</label><textarea id="ce-desc" style="width:100%;min-height:80px;">${esc(s.description || '')}</textarea></div>
+          <div class="field-group" style="grid-column:1/-1;"><label>Stat Bonuses (JSON)</label><textarea id="ce-statBonuses" style="width:100%;min-height:60px;font-family:var(--font-mono);font-size:var(--text-xs);">${JSON.stringify(s.statBonuses || {}, null, 2)}</textarea></div>
+          <div class="field-group"><label>Spirit Bonus</label><input type="number" id="ce-spiritBonus" value="${s.spiritBonus || 0}"></div>
+          <div class="field-group" style="grid-column:1/-1;"><label>Special Effect</label><textarea id="ce-specialEffect" style="width:100%;min-height:40px;">${esc(s.specialEffect || '')}</textarea></div>
+        </div>
+        <div style="margin-top:var(--space-4); display:flex; gap:var(--space-2); justify-content:flex-end;">
+          ${existing ? `<button class="btn-sm btn-danger" id="ce-delete">Delete</button>` : ''}
+          <button class="btn-sm btn-ghost" id="ce-cancel">Cancel</button>
+          <button class="btn-sm btn-accent" id="ce-save">${existing ? 'Update' : 'Create'}</button>
+        </div>
+      `;
+    }
+
+    bodyEl.innerHTML = formHtml;
+
+    // ── Render dynamic sub-lists ──
+    if (type === 'skills') {
+      renderEffectsList(bodyEl.querySelector('#effects-list'), effectsList, 'effect');
+      renderWeakProfList(bodyEl.querySelector('#weak-prof-list'));
+      renderEffectsList(bodyEl.querySelector('#strong-prof-effects-list'), strongProfEffects, 'sp-effect');
+
+      // Skill type select sync
+      bodyEl.querySelector('#ce-skillType-select')?.addEventListener('change', e => {
+        if (e.target.value) bodyEl.querySelector('#ce-skillType-custom').value = e.target.value;
+      });
+      bodyEl.querySelector('#ce-skillType-custom')?.addEventListener('input', e => {
+        bodyEl.querySelector('#ce-skillType-select').value = '';
+      });
+
+      // Strong prof toggle
+      bodyEl.querySelector('#ce-has-strong-prof')?.addEventListener('change', e => {
+        hasStrongProf = e.target.checked;
+        bodyEl.querySelector('#strong-prof-section').style.display = hasStrongProf ? '' : 'none';
+      });
+
+      // Add effect
+      bodyEl.querySelector('#add-effect')?.addEventListener('click', () => {
+        effectsList.push({ level: effectsList.length + 1, stat: '', type: 'add', value: 0, description: '' });
+        renderEffectsList(bodyEl.querySelector('#effects-list'), effectsList, 'effect');
+      });
+
+      // Add weak prof bonus
+      bodyEl.querySelector('#add-weak-prof')?.addEventListener('click', () => {
+        weakProfBonuses.push({ category: '', stat: '', type: 'add', value: 0, description: '' });
+        renderWeakProfList(bodyEl.querySelector('#weak-prof-list'));
+      });
+
+      // Add strong prof effect
+      bodyEl.querySelector('#add-strong-prof-effect')?.addEventListener('click', () => {
+        strongProfEffects.push({ level: strongProfEffects.length + 1, stat: '', type: 'add', value: 0, description: '' });
+        renderEffectsList(bodyEl.querySelector('#strong-prof-effects-list'), strongProfEffects, 'sp-effect');
+      });
+
+      // Strong prof image upload
+      bodyEl.querySelector('#sp-img-upload-btn')?.addEventListener('click', () => bodyEl.querySelector('#sp-img-file')?.click());
+      bodyEl.querySelector('#sp-img-file')?.addEventListener('change', async e => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 500 * 1024) { showNotification('Image must be under 500KB', 'danger'); return; }
+        const reader = new FileReader();
+        reader.onload = ev => { bodyEl.querySelector('#sp-icon').value = ev.target.result; };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (type === 'beasts') {
+      renderAbilitiesList(bodyEl.querySelector('#abilities-list'));
+
+      bodyEl.querySelector('#add-ability')?.addEventListener('click', () => {
+        beastAbilities.push({ name: '', evolutions: [{ minLevel: 1, name: '', description: '' }] });
+        renderAbilitiesList(bodyEl.querySelector('#abilities-list'));
+      });
+    }
+
+    // ── Image upload (shared) ──
+    bodyEl.querySelector('#ce-img-upload-btn')?.addEventListener('click', () => bodyEl.querySelector('#ce-img-file')?.click());
+    bodyEl.querySelector('#ce-img-file')?.addEventListener('change', async e => {
+      const file = e.target.files?.[0];
       if (!file) return;
-      if (file.size > 500000) { showNotification('Image too large (max 500KB). Compress or use a URL.', 'danger'); return; }
+      if (file.size > 500 * 1024) { showNotification('Image must be under 500KB', 'danger'); return; }
       const reader = new FileReader();
-      reader.onload = e => {
-        const target = document.getElementById('ce-image') || document.getElementById('ce-icon');
-        if (target) { target.value = e.target.result; }
-        showNotification('Image uploaded', 'success');
-      };
+      reader.onload = ev => { bodyEl.querySelector('#ce-icon').value = ev.target.result; };
       reader.readAsDataURL(file);
+    });
+
+    // ── Cancel ──
+    bodyEl.querySelector('#ce-cancel')?.addEventListener('click', () => closeModal('content-editor'));
+
+    // ── Delete ──
+    bodyEl.querySelector('#ce-delete')?.addEventListener('click', async () => {
+      if (!await showConfirmation(`Delete this ${type.slice(0, -1)}?`, { danger: true })) return;
+      const delFn = type === 'skills' ? deleteSkill : type === 'items' ? deleteItem : deleteBeast;
+      await delFn(id);
+      showNotification('Deleted', 'success');
+      closeModal('content-editor');
+      renderContentTab();
+    });
+
+    // ── Save ──
+    bodyEl.querySelector('#ce-save')?.addEventListener('click', async () => {
+      try {
+        let data;
+
+        if (type === 'skills') {
+          // Sync effects from DOM
+          syncEffectsFromDOM(bodyEl, effectsList, 'effect');
+          syncWeakProfFromDOM(bodyEl);
+          if (hasStrongProf) syncEffectsFromDOM(bodyEl, strongProfEffects, 'sp-effect');
+
+          const customType = bodyEl.querySelector('#ce-skillType-custom').value.trim();
+          const selectType = bodyEl.querySelector('#ce-skillType-select').value;
+          const spiritArr = bodyEl.querySelector('#ce-spiritCostPerLevel').value.trim();
+          const parsedSpirit = spiritArr ? JSON.parse(spiritArr) : [];
+
+          data = {
+            name: bodyEl.querySelector('#ce-name').value.trim(),
+            icon: bodyEl.querySelector('#ce-icon').value.trim(),
+            skillType: customType || selectType || '',
+            positionTags: [...bodyEl.querySelectorAll('.pos-check:checked')].map(cb => cb.value),
+            tier: parseInt(bodyEl.querySelector('#ce-tier').value) || 1,
+            maxLevel: parseInt(bodyEl.querySelector('#ce-maxLevel').value) || 5,
+            spiritCostPerLevel: parsedSpirit,
+            spiritCost: parsedSpirit.length > 0 ? parsedSpirit[0] : 0,
+            charges: parseInt(bodyEl.querySelector('#ce-charges').value) || 0,
+            description: bodyEl.querySelector('#ce-desc').value.trim(),
+            costPerLevel: JSON.parse(bodyEl.querySelector('#ce-costPerLevel').value),
+            effects: effectsList,
+            weakProficiencyBonuses: weakProfBonuses.filter(wb => wb.category),
+            isDiscovered: false
+          };
+
+          // Strong proficiency variant
+          if (hasStrongProf) {
+            data.proficientVersion = {
+              name: bodyEl.querySelector('#sp-name').value.trim() || data.name + ' (Proficient)',
+              icon: bodyEl.querySelector('#sp-icon').value.trim() || data.icon,
+              description: bodyEl.querySelector('#sp-desc').value.trim() || data.description,
+              costPerLevel: JSON.parse(bodyEl.querySelector('#sp-costPerLevel').value || '[]'),
+              effects: strongProfEffects
+            };
+            if (data.proficientVersion.costPerLevel.length === 0) {
+              data.proficientVersion.costPerLevel = data.costPerLevel;
+            }
+          } else {
+            data.proficientVersion = null;
+          }
+
+          // Auto-create wiki page on new skill
+          if (!existing && data.name) {
+            try {
+              const wikiTitle = data.name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+              const { saveWikiPage } = await import('../../services/wiki.service.js');
+              const wikiId = await saveWikiPage(null, {
+                title: wikiTitle,
+                content: `# ${wikiTitle}\n\n*This page is a placeholder for the skill "${data.name}". Edit to add details.*`,
+                format: 'markdown',
+                isDraft: true,
+                createdAt: new Date().toISOString()
+              });
+              data.wikiPageId = wikiId;
+            } catch (wikiErr) { console.warn('Wiki auto-create failed:', wikiErr); }
+          }
+
+        } else if (type === 'beasts') {
+          syncAbilitiesFromDOM(bodyEl);
+          data = {
+            name: bodyEl.querySelector('#ce-name').value.trim(),
+            image: bodyEl.querySelector('#ce-icon').value.trim(),
+            tier: parseInt(bodyEl.querySelector('#ce-tier').value) || 1,
+            description: bodyEl.querySelector('#ce-desc').value.trim(),
+            baseStats: {
+              hp: parseFloat(bodyEl.querySelector('#ce-bs-hp').value) || 10,
+              attack: parseFloat(bodyEl.querySelector('#ce-bs-attack').value) || 5,
+              defense: parseFloat(bodyEl.querySelector('#ce-bs-defense').value) || 5,
+              speed: parseFloat(bodyEl.querySelector('#ce-bs-speed').value) || 5
+            },
+            growthRates: {
+              hp: parseFloat(bodyEl.querySelector('#ce-gr-hp').value) || 2,
+              attack: parseFloat(bodyEl.querySelector('#ce-gr-attack').value) || 1,
+              defense: parseFloat(bodyEl.querySelector('#ce-gr-defense').value) || 1,
+              speed: parseFloat(bodyEl.querySelector('#ce-gr-speed').value) || 1
+            },
+            abilities: beastAbilities,
+            synergyTags: existing?.synergyTags || [],
+            isDiscovered: false
+          };
+
+        } else {
+          // Items — existing raw approach
+          data = {
+            name: bodyEl.querySelector('#ce-name').value.trim(),
+            image: bodyEl.querySelector('#ce-icon').value.trim(),
+            equipmentType: bodyEl.querySelector('#ce-equipType')?.value.trim() || '',
+            price: parseInt(bodyEl.querySelector('#ce-price')?.value) || 0,
+            description: bodyEl.querySelector('#ce-desc').value.trim(),
+            statBonuses: JSON.parse(bodyEl.querySelector('#ce-statBonuses')?.value || '{}'),
+            spiritBonus: parseInt(bodyEl.querySelector('#ce-spiritBonus')?.value) || 0,
+            specialEffect: bodyEl.querySelector('#ce-specialEffect')?.value.trim() || '',
+            isDiscovered: false
+          };
+        }
+
+        if (!data.name) { showNotification('Name is required', 'danger'); return; }
+
+        const saveFn = type === 'skills' ? saveSkill : type === 'items' ? saveItem : saveBeast;
+        const savedId = await saveFn(id, data);
+
+        // Wiki page linking for new skills
+        if (type === 'skills' && !existing && data.wikiPageId && savedId) {
+          try {
+            const { saveWikiPage } = await import('../../services/wiki.service.js');
+            await saveWikiPage(data.wikiPageId, { linkedSkillId: savedId });
+          } catch (e) { console.warn('Wiki link update failed:', e); }
+        }
+        // Rename wiki page if skill name changed
+        if (type === 'skills' && existing && data.name !== existing.name && existing.wikiPageId) {
+          try {
+            const { saveWikiPage } = await import('../../services/wiki.service.js');
+            const newTitle = data.name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            await saveWikiPage(existing.wikiPageId, { title: newTitle });
+          } catch (e) { console.warn('Wiki title update failed:', e); }
+        }
+
+        showNotification(existing ? 'Updated!' : 'Created!', 'success');
+        closeModal('content-editor');
+        renderContentTab();
+      } catch (err) {
+        showNotification('Error: ' + err.message, 'danger');
+        console.error(err);
+      }
+    });
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // EFFECTS LIST RENDERER (shared for base effects + strong prof effects)
+  // ═══════════════════════════════════════════════════════════════
+  function renderEffectsList(container, list, prefix) {
+    if (!container) return;
+    container.innerHTML = list.map((eff, i) => `
+      <div class="effect-entry" style="background:var(--bg-tertiary); border:1px solid var(--border-color); padding:var(--space-3); margin-bottom:var(--space-2); position:relative;">
+        <button class="btn-sm btn-danger" data-remove-idx="${i}" style="position:absolute; top:4px; right:4px; font-size:0.5rem; padding:2px 4px;">×</button>
+        <div class="admin-form-grid" style="grid-template-columns: repeat(4, 1fr); gap:var(--space-2);">
+          <div class="field-group"><label style="font-size:0.55rem;">Level</label><input type="number" class="${prefix}-level" data-idx="${i}" value="${eff.level || i+1}" min="1"></div>
+          <div class="field-group"><label style="font-size:0.55rem;">Stat</label>
+            <select class="${prefix}-stat" data-idx="${i}">
+              <option value="">None (desc only)</option>
+              ${STATS.map(s => `<option value="${s}" ${eff.stat===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field-group"><label style="font-size:0.55rem;">Type</label>
+            <select class="${prefix}-type" data-idx="${i}">
+              <option value="add" ${eff.type==='add'?'selected':''}>Add (+)</option>
+              <option value="mul" ${eff.type==='mul'?'selected':''}>Multiply (×)</option>
+            </select>
+          </div>
+          <div class="field-group"><label style="font-size:0.55rem;">Value</label><input type="number" class="${prefix}-value" data-idx="${i}" value="${eff.value || 0}" step="0.1"></div>
+        </div>
+        <div class="admin-form-grid" style="grid-template-columns: repeat(4, 1fr); gap:var(--space-2); margin-top:var(--space-2);">
+          <div class="field-group"><label style="font-size:0.55rem;">Stat 2 (optional)</label>
+            <select class="${prefix}-stat2" data-idx="${i}">
+              <option value="">None</option>
+              ${STATS.map(s => `<option value="${s}" ${eff.stat2===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field-group"><label style="font-size:0.55rem;">Type 2</label>
+            <select class="${prefix}-type2" data-idx="${i}">
+              <option value="add" ${eff.type2==='add'?'selected':''}>Add (+)</option>
+              <option value="mul" ${eff.type2==='mul'?'selected':''}>Multiply (×)</option>
+            </select>
+          </div>
+          <div class="field-group"><label style="font-size:0.55rem;">Value 2</label><input type="number" class="${prefix}-value2" data-idx="${i}" value="${eff.value2 || 0}" step="0.1"></div>
+          <div></div>
+        </div>
+        <div class="field-group" style="margin-top:var(--space-2);"><label style="font-size:0.55rem;">Description (shown in table, overrides stat formula display)</label><input type="text" class="${prefix}-desc" data-idx="${i}" value="${esc(eff.description || '')}" style="width:100%;"></div>
+      </div>
+    `).join('') || '<p style="color:var(--text-muted); font-size:var(--text-xs);">No effects. Click + to add one.</p>';
+
+    container.querySelectorAll('[data-remove-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        list.splice(parseInt(btn.dataset.removeIdx), 1);
+        renderEffectsList(container, list, prefix);
+      });
     });
   }
 
-  document.getElementById('ce-delete')?.addEventListener('click', async () => {
-    if (!await showConfirmation('Delete this entry? This cannot be undone.', { danger: true })) return;
-    const deleteFn = type === 'skills' ? deleteSkill : type === 'items' ? deleteItem : deleteBeast;
-    await deleteFn(id);
-    showNotification('Deleted', 'success');
-    closeModal('content-editor');
-    renderContentTab();
-  });
+  function syncEffectsFromDOM(root, list, prefix) {
+    list.forEach((eff, i) => {
+      eff.level = parseInt(root.querySelector(`.${prefix}-level[data-idx="${i}"]`)?.value) || i + 1;
+      eff.stat = root.querySelector(`.${prefix}-stat[data-idx="${i}"]`)?.value || '';
+      eff.type = root.querySelector(`.${prefix}-type[data-idx="${i}"]`)?.value || 'add';
+      eff.value = parseFloat(root.querySelector(`.${prefix}-value[data-idx="${i}"]`)?.value) || 0;
+      eff.stat2 = root.querySelector(`.${prefix}-stat2[data-idx="${i}"]`)?.value || '';
+      eff.type2 = root.querySelector(`.${prefix}-type2[data-idx="${i}"]`)?.value || 'add';
+      eff.value2 = parseFloat(root.querySelector(`.${prefix}-value2[data-idx="${i}"]`)?.value) || 0;
+      eff.description = root.querySelector(`.${prefix}-desc[data-idx="${i}"]`)?.value || '';
+      // Clean empty fields
+      if (!eff.stat) { delete eff.stat; delete eff.type; delete eff.value; }
+      if (!eff.stat2) { delete eff.stat2; delete eff.type2; delete eff.value2; }
+      if (!eff.description) delete eff.description;
+    });
+  }
 
-  document.getElementById('ce-save')?.addEventListener('click', async () => {
-    try {
-      let data = {};
-      if (type === 'skills') {
-        const spiritArr = document.getElementById('ce-spiritCostPerLevel').value.trim();
-        const parsedSpirit = spiritArr ? JSON.parse(spiritArr) : [];
-        data = {
-          name: document.getElementById('ce-name').value.trim(),
-          icon: document.getElementById('ce-icon').value.trim(),
-          skillType: document.getElementById('ce-skillType').value.trim(),
-          positionTags: document.getElementById('ce-positions').value.split(',').map(s => s.trim()).filter(Boolean),
-          tier: parseInt(document.getElementById('ce-tier').value) || 1,
-          maxLevel: parseInt(document.getElementById('ce-maxLevel').value) || 5,
-          spiritCostPerLevel: parsedSpirit,
-          spiritCost: parsedSpirit.length > 0 ? parsedSpirit[0] : 0,
-          charges: parseInt(document.getElementById('ce-charges').value) || 0,
-          description: document.getElementById('ce-desc').value.trim(),
-          costPerLevel: JSON.parse(document.getElementById('ce-costPerLevel').value),
-          effects: JSON.parse(document.getElementById('ce-effects').value),
-          isDiscovered: document.getElementById('ce-discovered').checked
-        };
-        // Auto-create wiki page on new skill creation
-        if (!existing && data.name) {
-          try {
-            const wikiTitle = data.name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-            const { saveWikiPage } = await import('../../services/wiki.service.js');
-            const wikiId = await saveWikiPage(null, {
-              title: wikiTitle,
-              content: `# ${wikiTitle}\n\n*This page is a placeholder for the skill "${data.name}". Edit to add details.*`,
-              format: 'markdown',
-              isDraft: true,
-              linkedSkillId: null, // will be set after skill is saved
-              createdAt: new Date().toISOString()
-            });
-            data.wikiPageId = wikiId;
-          } catch (wikiErr) {
-            console.warn('Failed to auto-create wiki page:', wikiErr);
-          }
-        }
-      } else if (type === 'items') {
-        data = {
-          name: document.getElementById('ce-name').value.trim(),
-          image: document.getElementById('ce-image').value.trim(),
-          type: document.getElementById('ce-type').value,
-          stat: document.getElementById('ce-stat').value || null,
-          modifier: parseInt(document.getElementById('ce-modifier').value) || 0,
-          spiritBonus: parseInt(document.getElementById('ce-spiritBonus').value) || 0,
-          price: parseInt(document.getElementById('ce-price').value) || 0,
-          specialEffect: document.getElementById('ce-specialEffect').value.trim(),
-          radius: parseInt(document.getElementById('ce-radius').value) || 0,
-          speed: parseInt(document.getElementById('ce-speed').value) || 0,
-          sockets: parseInt(document.getElementById('ce-sockets').value) || 0,
-          abilities: document.getElementById('ce-abilities').value.split(',').map(s => s.trim()).filter(Boolean),
-          isDiscovered: document.getElementById('ce-discovered').checked
-        };
-      } else {
-        data = {
-          name: document.getElementById('ce-name').value.trim(),
-          image: document.getElementById('ce-image').value.trim(),
-          tier: parseInt(document.getElementById('ce-tier').value) || 1,
-          description: document.getElementById('ce-desc').value.trim(),
-          baseStats: JSON.parse(document.getElementById('ce-baseStats').value),
-          growthRates: JSON.parse(document.getElementById('ce-growthRates').value),
-          abilities: JSON.parse(document.getElementById('ce-beastAbilities').value),
-          synergyTags: document.getElementById('ce-synergyTags').value.split(',').map(s => s.trim()).filter(Boolean),
-          isDiscovered: document.getElementById('ce-discovered')?.checked ?? true
-        };
-      }
-      if (!data.name) { showNotification('Name is required', 'danger'); return; }
-      const saveFn = type === 'skills' ? saveSkill : type === 'items' ? saveItem : saveBeast;
-      const savedId = await saveFn(id, data);
-      // For new skills, update the wiki page with the linkedSkillId
-      if (type === 'skills' && !existing && data.wikiPageId && savedId) {
-        try {
-          const { saveWikiPage } = await import('../../services/wiki.service.js');
-          await saveWikiPage(data.wikiPageId, { linkedSkillId: savedId });
-        } catch (e) { console.warn('Wiki link update failed:', e); }
-      }
-      // If skill name changed, update linked wiki page title
-      if (type === 'skills' && existing && data.name !== existing.name && existing.wikiPageId) {
-        try {
-          const { saveWikiPage } = await import('../../services/wiki.service.js');
-          const newTitle = data.name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-          await saveWikiPage(existing.wikiPageId, { title: newTitle });
-        } catch (e) { console.warn('Wiki title update failed:', e); }
-      }
+  // ═══════════════════════════════════════════════════════════════
+  // WEAK PROFICIENCY LIST RENDERER
+  // ═══════════════════════════════════════════════════════════════
+  function renderWeakProfList(container) {
+    if (!container) return;
+    const allCategories = [...new Set(libs.skills.map(s => s.skillType).filter(Boolean))];
 
-      showNotification(existing ? 'Updated!' : 'Created!', 'success');
-      closeModal('content-editor');
-      renderContentTab();
-    } catch (err) {
-      showNotification('Error: ' + err.message, 'danger');
-    }
-  });
+    container.innerHTML = weakProfBonuses.map((wb, i) => `
+      <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); padding:var(--space-3); margin-bottom:var(--space-2); position:relative;">
+        <button class="btn-sm btn-danger" data-remove-wp="${i}" style="position:absolute; top:4px; right:4px; font-size:0.5rem; padding:2px 4px;">×</button>
+        <div class="admin-form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; gap:var(--space-2);">
+          <div class="field-group"><label style="font-size:0.55rem;">Proficiency Category</label>
+            <div style="display:flex;gap:var(--space-1);">
+              <select class="wp-cat-select" data-idx="${i}" style="flex:1;">
+                <option value="">Custom...</option>
+                ${allCategories.map(c => `<option value="${c}" ${wb.category===c?'selected':''}>${c}</option>`).join('')}
+              </select>
+              <input type="text" class="wp-cat-custom" data-idx="${i}" value="${esc(wb.category || '')}" placeholder="Custom" style="flex:1;">
+            </div>
+          </div>
+          <div class="field-group"><label style="font-size:0.55rem;">Bonus Stat (or leave empty for narrative)</label>
+            <select class="wp-stat" data-idx="${i}">
+              <option value="">Narrative only</option>
+              ${STATS.map(s => `<option value="${s}" ${wb.stat===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field-group"><label style="font-size:0.55rem;">Type</label>
+            <select class="wp-type" data-idx="${i}">
+              <option value="add" ${wb.type==='add'?'selected':''}>Add (+)</option>
+              <option value="mul" ${wb.type==='mul'?'selected':''}>Multiply (×)</option>
+            </select>
+          </div>
+          <div class="field-group"><label style="font-size:0.55rem;">Value</label><input type="number" class="wp-value" data-idx="${i}" value="${wb.value || 0}" step="0.1"></div>
+        </div>
+        <div class="field-group" style="margin-top:var(--space-2);"><label style="font-size:0.55rem;">Description (shown to player, e.g. "+range" or "+3 Strength")</label><input type="text" class="wp-desc" data-idx="${i}" value="${esc(wb.description || '')}" style="width:100%;"></div>
+      </div>
+    `).join('') || '<p style="color:var(--text-muted); font-size:var(--text-xs);">No weak proficiency bonuses. Click + to add one.</p>';
+
+    container.querySelectorAll('[data-remove-wp]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        weakProfBonuses.splice(parseInt(btn.dataset.removeWp), 1);
+        renderWeakProfList(container);
+      });
+    });
+
+    // Sync select → custom input
+    container.querySelectorAll('.wp-cat-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const idx = sel.dataset.idx;
+        if (sel.value) container.querySelector(`.wp-cat-custom[data-idx="${idx}"]`).value = sel.value;
+      });
+    });
+  }
+
+  function syncWeakProfFromDOM(root) {
+    weakProfBonuses.forEach((wb, i) => {
+      const custom = root.querySelector(`.wp-cat-custom[data-idx="${i}"]`)?.value.trim();
+      const select = root.querySelector(`.wp-cat-select[data-idx="${i}"]`)?.value;
+      wb.category = custom || select || '';
+      wb.stat = root.querySelector(`.wp-stat[data-idx="${i}"]`)?.value || '';
+      wb.type = root.querySelector(`.wp-type[data-idx="${i}"]`)?.value || 'add';
+      wb.value = parseFloat(root.querySelector(`.wp-value[data-idx="${i}"]`)?.value) || 0;
+      wb.description = root.querySelector(`.wp-desc[data-idx="${i}"]`)?.value || '';
+      if (!wb.stat) { delete wb.stat; delete wb.type; delete wb.value; }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // BEAST ABILITIES LIST RENDERER
+  // ═══════════════════════════════════════════════════════════════
+  function renderAbilitiesList(container) {
+    if (!container) return;
+
+    container.innerHTML = beastAbilities.map((ability, ai) => {
+      const evosHtml = (ability.evolutions || []).map((evo, ei) => `
+        <div style="display:grid; grid-template-columns: 60px 1fr 2fr auto; gap:var(--space-2); align-items:center; padding:var(--space-1) 0;">
+          <input type="number" class="evo-level" data-ai="${ai}" data-ei="${ei}" value="${evo.minLevel || 1}" min="1" placeholder="Lvl" title="Min Level">
+          <input type="text" class="evo-name" data-ai="${ai}" data-ei="${ei}" value="${esc(evo.name || '')}" placeholder="Evolution name">
+          <input type="text" class="evo-desc" data-ai="${ai}" data-ei="${ei}" value="${esc(evo.description || '')}" placeholder="Description">
+          <button class="btn-sm btn-danger" data-remove-evo data-ai="${ai}" data-ei="${ei}" style="font-size:0.5rem; padding:2px 4px;">×</button>
+        </div>
+      `).join('');
+
+      return `
+        <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); padding:var(--space-3); margin-bottom:var(--space-2); position:relative;">
+          <button class="btn-sm btn-danger" data-remove-ability="${ai}" style="position:absolute; top:4px; right:4px; font-size:0.5rem; padding:2px 4px;">×</button>
+          <div class="field-group" style="margin-bottom:var(--space-2);"><label style="font-size:0.55rem;">Ability Name</label><input type="text" class="ability-name" data-ai="${ai}" value="${esc(ability.name || '')}" style="width:100%;"></div>
+          <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:var(--space-1);">Evolutions (Level → Name → Description)</div>
+          ${evosHtml}
+          <button class="btn-sm btn-ghost" data-add-evo="${ai}" style="margin-top:var(--space-1); font-size:0.55rem;">+ Add Evolution</button>
+        </div>
+      `;
+    }).join('') || '<p style="color:var(--text-muted); font-size:var(--text-xs);">No abilities. Click + to add one.</p>';
+
+    container.querySelectorAll('[data-remove-ability]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        beastAbilities.splice(parseInt(btn.dataset.removeAbility), 1);
+        renderAbilitiesList(container);
+      });
+    });
+
+    container.querySelectorAll('[data-add-evo]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ai = parseInt(btn.dataset.addEvo);
+        beastAbilities[ai].evolutions.push({ minLevel: 1, name: '', description: '' });
+        syncAbilitiesFromDOM(bodyEl);
+        renderAbilitiesList(container);
+      });
+    });
+
+    container.querySelectorAll('[data-remove-evo]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ai = parseInt(btn.dataset.ai);
+        const ei = parseInt(btn.dataset.ei);
+        beastAbilities[ai].evolutions.splice(ei, 1);
+        syncAbilitiesFromDOM(bodyEl);
+        renderAbilitiesList(container);
+      });
+    });
+  }
+
+  function syncAbilitiesFromDOM(root) {
+    beastAbilities.forEach((ability, ai) => {
+      ability.name = root.querySelector(`.ability-name[data-ai="${ai}"]`)?.value || '';
+      (ability.evolutions || []).forEach((evo, ei) => {
+        evo.minLevel = parseInt(root.querySelector(`.evo-level[data-ai="${ai}"][data-ei="${ei}"]`)?.value) || 1;
+        evo.name = root.querySelector(`.evo-name[data-ai="${ai}"][data-ei="${ei}"]`)?.value || '';
+        evo.description = root.querySelector(`.evo-desc[data-ai="${ai}"][data-ei="${ei}"]`)?.value || '';
+      });
+    });
+  }
+
+  // ── Open the modal ──
+  renderForm();
+  openModal({ id: 'content-editor', title: `${existing ? 'Edit' : 'New'} ${type.slice(0, -1)}`, body: bodyEl, size: 'xl' });
 }
 
 // ═══════════════════════════════════════════════════════════════════
